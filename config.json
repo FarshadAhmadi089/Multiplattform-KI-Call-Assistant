@@ -1,0 +1,25 @@
+{
+  "participants": [
+    "Alice",
+    "Bob",
+    "Charlie"
+  ],
+  "current_session": 1,
+  "output_file": "Session_Report.md",
+  "whisper_keywords": [
+    "Alice",
+    "Bob",
+    "Charlie"
+  ],
+  "hallucination_filter": [
+    "untertitel",
+    "vielen dank",
+    "danke fürs zuschauen",
+    "abonniert den kanal",
+    "tschüss",
+    "like and subscribe",
+    "thanks for watching"
+  ],
+  "speaker_label": "Moderator",
+  "listener_label": "Participants"
+}

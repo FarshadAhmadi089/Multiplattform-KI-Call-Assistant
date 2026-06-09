@@ -1,0 +1,24 @@
+SESSION 1 - Project Kickoff & Planning
+========================================
+
+OBJECTIVES:
+This is the first session focused on project planning and task distribution.
+
+KEY GOALS:
+1. Define the project scope and main objectives
+2. Identify key deliverables and milestones
+3. Assign roles and responsibilities to team members
+4. Establish communication channels and meeting schedule
+5. Discuss technical stack and architecture approach
+
+SUCCESS CRITERIA:
+- Clear understanding of project goals by all participants
+- Initial task breakdown created
+- Roles assigned to each team member
+- Next steps and deadlines agreed upon
+
+---
+
+CUSTOMIZE THIS FILE:
+Replace the content above with your actual session objectives, goals, or assignment requirements.
+This file is loaded by the assistant to evaluate progress and generate accurate reports.

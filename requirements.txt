@@ -1,0 +1,10 @@
+# Core Dependencies
+soundcard>=0.4.2
+numpy>=1.24.0
+requests>=2.31.0
+
+# Optional: Für .env Datei Unterstützung
+python-dotenv>=1.0.0
+
+# Empfohlen für bessere Performance
+urllib3>=2.0.0

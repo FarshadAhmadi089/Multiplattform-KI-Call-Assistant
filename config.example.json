@@ -1,0 +1,41 @@
+{
+  "_comment_participants": "Liste aller Teilnehmer des Calls (z.B. Studenten, Teammitglieder, etc.). Diese Namen werden in der finalen Tabelle verwendet.",
+  "participants": [
+    "Alice",
+    "Bob",
+    "Charlie"
+  ],
+
+  "_comment_current_session": "Nummer der aktuellen Session/Meilenstein. Das Programm lädt automatisch die Datei 'sessions/session_X.txt' mit der entsprechenden Aufgabenstellung.",
+  "current_session": 1,
+
+  "_comment_output_file": "Dateiname für das generierte Protokoll am Ende des Calls.",
+  "output_file": "Session_Report.md",
+
+  "_comment_whisper_keywords": "Wichtige Begriffe für bessere Transkriptions-Genauigkeit (Eigennamen, Fachbegriffe, Projektnamen etc.). Whisper wird diese Wörter bevorzugt erkennen.",
+  "whisper_keywords": [
+    "Alice",
+    "Bob",
+    "Charlie",
+    "ProjectName",
+    "TechnicalTerm1",
+    "TechnicalTerm2"
+  ],
+
+  "_comment_hallucination_filter": "Wörter/Phrasen, die aus der Transkription gefiltert werden (typische Whisper-Halluzinationen wie YouTube-Outro-Phrasen).",
+  "hallucination_filter": [
+    "untertitel",
+    "vielen dank",
+    "danke fürs zuschauen",
+    "abonniert den kanal",
+    "tschüss",
+    "like and subscribe",
+    "thanks for watching"
+  ],
+
+  "_comment_speaker_label": "Label für den Hauptsprecher (z.B. 'Tutor', 'Moderator', 'Interviewer'). Erscheint in der Transkription als [Label].",
+  "speaker_label": "Moderator",
+
+  "_comment_listener_label": "Label für die anderen Teilnehmer (z.B. 'Studenten', 'Teilnehmer', 'Team'). Erscheint in der Transkription als [Label].",
+  "listener_label": "Participants"
+}
