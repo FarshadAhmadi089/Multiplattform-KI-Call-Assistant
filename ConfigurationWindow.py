@@ -7,6 +7,9 @@ import tkinter as tk
 from tkinter import ttk, scrolledtext, messagebox, simpledialog
 from pathlib import Path
 import os
+import json
+import sys
+import ctypes
 
 
 class StyledConfigurationWindow:
@@ -45,6 +48,13 @@ class StyledConfigurationWindow:
             "Final Report": self.base_path / "prompts" / "final_report"
         }
         self.session_path = self.base_path / "sessions"
+
+        # Load config to get active prompts
+        self.config = self.load_config()
+        self.active_prompts = {
+            "Live Analysis": self.config.get("active_live_analysis_prompt", "default"),
+            "Final Report": self.config.get("active_final_report_prompt", "default")
+        }
 
         # Setup styles
         self.setup_styles()
@@ -205,7 +215,8 @@ class StyledConfigurationWindow:
         editor_footer.pack(fill='x')
 
         self.create_action_button(editor_footer, "💾 Save Changes", self.save_prompt, self.COLORS['primary']).pack(side='left', padx=(0, 10))
-        self.create_action_button(editor_footer, "↺ Reset", self.reset_prompt, self.COLORS['text_secondary']).pack(side='left')
+        self.create_action_button(editor_footer, "↺ Reset", self.reset_prompt, self.COLORS['text_secondary']).pack(side='left', padx=(0, 10))
+        self.create_action_button(editor_footer, "⭐ Set as Active", self.set_active_prompt, self.COLORS['warning']).pack(side='left')
 
         # Status
         self.prompt_status_label = tk.Label(editor_footer, text="Select a prompt to begin",
@@ -308,6 +319,40 @@ class StyledConfigurationWindow:
         # Load sessions
         self.refresh_sessions()
 
+    def load_config(self):
+        """Load config.json"""
+        config_path = self.base_path / "config.json"
+        try:
+            if config_path.exists():
+                with open(config_path, 'r', encoding='utf-8') as f:
+                    return json.load(f)
+        except:
+            pass
+        return {}
+
+    def save_config_file(self):
+        """Save config.json"""
+        config_path = self.base_path / "config.json"
+        try:
+            with open(config_path, 'w', encoding='utf-8') as f:
+                json.dump(self.config, f, indent=2, ensure_ascii=False)
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to save config: {e}")
+
+    def set_screen_capture_protection(self, enable=True):
+        """Enable or disable screen capture protection for this window"""
+        try:
+            if sys.platform == "win32":
+                # Wait for window to be created
+                self.window.update_idletasks()
+                hwnd = ctypes.windll.user32.GetParent(self.window.winfo_id())
+                if enable:
+                    ctypes.windll.user32.SetWindowDisplayAffinity(hwnd, 0x00000011)
+                else:
+                    ctypes.windll.user32.SetWindowDisplayAffinity(hwnd, 0x00000000)
+        except Exception as e:
+            print(f"Could not set screen capture protection on Configuration Window: {e}")
+
     def create_action_button(self, parent, text, command, color):
         """Create a styled action button"""
         return tk.Button(parent, text=text, command=command,
@@ -342,8 +387,16 @@ class StyledConfigurationWindow:
             prompt_dir.mkdir(parents=True, exist_ok=True)
             return
 
+        active_prompt = self.active_prompts.get(category, "default")
+
         for file in sorted(prompt_dir.glob("*.txt")):
-            self.prompt_listbox.insert(tk.END, file.stem)
+            filename = file.stem
+            # Mark active prompt with star
+            if filename == active_prompt:
+                display_name = f"⭐ {filename}"
+            else:
+                display_name = filename
+            self.prompt_listbox.insert(tk.END, display_name)
 
     def on_prompt_select(self, event=None):
         """When a prompt is selected from the list"""
@@ -351,7 +404,9 @@ class StyledConfigurationWindow:
         if not selection:
             return
 
-        filename = self.prompt_listbox.get(selection[0])
+        display_name = self.prompt_listbox.get(selection[0])
+        # Strip star emoji if present
+        filename = display_name.replace("⭐ ", "")
         self.load_prompt_file(filename)
 
     def load_prompt_file(self, filename):
@@ -447,7 +502,9 @@ class StyledConfigurationWindow:
 
             # Select the new file
             for i in range(self.prompt_listbox.size()):
-                if self.prompt_listbox.get(i) == filename:
+                display_name = self.prompt_listbox.get(i)
+                clean_name = display_name.replace("⭐ ", "")
+                if clean_name == filename:
                     self.prompt_listbox.selection_clear(0, tk.END)
                     self.prompt_listbox.selection_set(i)
                     self.load_prompt_file(filename)
@@ -463,7 +520,8 @@ class StyledConfigurationWindow:
             messagebox.showwarning("No Selection", "Please select a prompt to rename.")
             return
 
-        old_name = self.prompt_listbox.get(selection[0])
+        display_name = self.prompt_listbox.get(selection[0])
+        old_name = display_name.replace("⭐ ", "")
         category = self.prompt_category_var.get()
 
         new_name = simpledialog.askstring("Rename Prompt", f"Rename '{old_name}' to:", initialvalue=old_name)
@@ -489,7 +547,9 @@ class StyledConfigurationWindow:
                                            fg=self.COLORS['success'])
 
             for i in range(self.prompt_listbox.size()):
-                if self.prompt_listbox.get(i) == new_name:
+                display_name = self.prompt_listbox.get(i)
+                clean_name = display_name.replace("⭐ ", "")
+                if clean_name == new_name:
                     self.prompt_listbox.selection_clear(0, tk.END)
                     self.prompt_listbox.selection_set(i)
                     self.load_prompt_file(new_name)
@@ -505,7 +565,8 @@ class StyledConfigurationWindow:
             messagebox.showwarning("No Selection", "Please select a prompt to delete.")
             return
 
-        filename = self.prompt_listbox.get(selection[0])
+        display_name = self.prompt_listbox.get(selection[0])
+        filename = display_name.replace("⭐ ", "")
         category = self.prompt_category_var.get()
 
         response = messagebox.askyesno("Confirm Delete",
@@ -525,6 +586,42 @@ class StyledConfigurationWindow:
 
         except Exception as e:
             messagebox.showerror("Error", f"Failed to delete:\n{e}")
+
+    def set_active_prompt(self):
+        """Set the selected prompt as the active one for recording"""
+        selection = self.prompt_listbox.curselection()
+        if not selection:
+            messagebox.showwarning("No Selection", "Please select a prompt to set as active.")
+            return
+
+        category = self.prompt_category_var.get()
+        if not category:
+            messagebox.showwarning("No Category", "Please select a prompt type first.")
+            return
+
+        display_name = self.prompt_listbox.get(selection[0])
+        # Strip star emoji if present
+        filename = display_name.replace("⭐ ", "")
+
+        # Update active prompts dictionary
+        self.active_prompts[category] = filename
+
+        # Update config with appropriate key
+        if category == "Live Analysis":
+            self.config["active_live_analysis_prompt"] = filename
+        elif category == "Final Report":
+            self.config["active_final_report_prompt"] = filename
+
+        # Save config
+        self.save_config_file()
+
+        # Refresh the list to show new active prompt
+        self.refresh_prompts()
+
+        # Update status
+        self.prompt_status_label.config(text=f"✓ Set '{filename}' as active for {category}",
+                                       fg=self.COLORS['success'])
+        messagebox.showinfo("Success", f"'{filename}' is now the active prompt for {category}")
 
     # ============================================
     # SESSION TAB METHODS (similar to prompt methods)

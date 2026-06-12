@@ -23,5 +23,9 @@
   "speaker_label": "Moderator",
   "listener_label": "Participants",
   "active_live_analysis_prompt": "default",
-  "active_final_report_prompt": "default"
+  "active_final_report_prompt": "default",
+  "api_key": "123",
+  "llm_model": "qwen/qwen3-vl-30b-a3b-instruct",
+  "audio_model": "openai/whisper-large-v3-turbo",
+  "hide_from_capture": true
 }

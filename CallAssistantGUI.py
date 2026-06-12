@@ -12,9 +12,105 @@ import json
 import os
 import sys
 from pathlib import Path
+import ctypes
 
 # Import the ConfigurationWindow
 from ConfigurationWindow import StyledConfigurationWindow as ConfigurationWindow
+
+
+class LiveAnalysisWindow:
+    """Separate window showing only AI live analysis feedback"""
+
+    COLORS = {
+        'primary': '#2563EB',
+        'success': '#10B981',
+        'bg_main': '#F9FAFB',
+        'bg_card': '#FFFFFF',
+        'text_primary': '#111827',
+        'text_secondary': '#6B7280',
+    }
+
+    def __init__(self, parent, apply_protection=False):
+        self.window = tk.Toplevel(parent)
+        self.window.title("🤖 AI Live Analysis")
+        self.window.geometry("600x500")
+        self.window.configure(bg=self.COLORS['bg_main'])
+
+        # Make window stay on top
+        self.window.attributes('-topmost', True)
+
+        # Apply screen capture protection if requested
+        if apply_protection:
+            self.set_screen_capture_protection(True)
+
+        # Create UI
+        self.create_widgets()
+
+    def set_screen_capture_protection(self, enable=True):
+        """Enable or disable screen capture protection for this window"""
+        try:
+            if sys.platform == "win32":
+                # Wait for window to be created
+                self.window.update_idletasks()
+                hwnd = ctypes.windll.user32.GetParent(self.window.winfo_id())
+                if enable:
+                    ctypes.windll.user32.SetWindowDisplayAffinity(hwnd, 0x00000011)
+                else:
+                    ctypes.windll.user32.SetWindowDisplayAffinity(hwnd, 0x00000000)
+        except Exception as e:
+            print(f"Could not set screen capture protection on Live Analysis Window: {e}")
+
+    def create_widgets(self):
+        # Header
+        header = tk.Frame(self.window, bg=self.COLORS['primary'], height=60)
+        header.pack(fill='x')
+        header.pack_propagate(False)
+
+        header_label = tk.Label(header, text="🤖 AI Live Analysis",
+                               bg=self.COLORS['primary'], fg='white',
+                               font=('Segoe UI', 16, 'bold'))
+        header_label.place(relx=0.5, rely=0.5, anchor='center')
+
+        # Main content
+        content = tk.Frame(self.window, bg=self.COLORS['bg_main'], padx=15, pady=15)
+        content.pack(fill='both', expand=True)
+
+        # Analysis display
+        self.analysis_display = scrolledtext.ScrolledText(
+            content, wrap=tk.WORD, font=('Segoe UI', 11),
+            bg=self.COLORS['bg_card'], relief='flat',
+            borderwidth=1, padx=10, pady=10
+        )
+        self.analysis_display.pack(fill='both', expand=True)
+        self.analysis_display.config(state="disabled")
+
+        # Configure tags for colors
+        self.analysis_display.tag_config("ai", foreground=self.COLORS['primary'],
+                                        font=('Segoe UI', 11, 'bold'))
+        self.analysis_display.tag_config("timestamp", foreground=self.COLORS['text_secondary'],
+                                        font=('Segoe UI', 9))
+
+        # Clear button
+        clear_btn = tk.Button(content, text="Clear",
+                             command=self.clear_display,
+                             bg=self.COLORS['bg_card'], fg=self.COLORS['text_primary'],
+                             font=('Segoe UI', 9),
+                             relief='flat', padx=15, pady=5,
+                             cursor='hand2')
+        clear_btn.pack(pady=(10, 0))
+
+    def append_analysis(self, message, tag="normal"):
+        """Append AI analysis message to display"""
+        self.analysis_display.config(state="normal")
+        self.analysis_display.insert(tk.END, message, tag)
+        self.analysis_display.see(tk.END)
+        self.analysis_display.config(state="disabled")
+
+    def clear_display(self):
+        """Clear the analysis display"""
+        self.analysis_display.config(state="normal")
+        self.analysis_display.delete(1.0, tk.END)
+        self.analysis_display.config(state="disabled")
 
 
 class CallAssistantGUI:
@@ -48,6 +144,7 @@ class CallAssistantGUI:
         self.is_running = False
         self.recording_thread = None
         self.transcript_queue = queue.Queue()
+        self.live_analysis_window = None
 
         # Configure style
         self.setup_styles()
@@ -55,6 +152,45 @@ class CallAssistantGUI:
         # Create UI
         self.create_widgets()
         self.load_config()
+
+    def set_screen_capture_protection(self, enable=True):
+        """Enable or disable screen capture protection (Windows only)"""
+        try:
+            if sys.platform == "win32":
+                # Get window handle
+                hwnd = ctypes.windll.user32.GetParent(self.root.winfo_id())
+
+                # WDA_EXCLUDEFROMCAPTURE = 0x00000011
+                # Set window display affinity
+                if enable:
+                    ctypes.windll.user32.SetWindowDisplayAffinity(hwnd, 0x00000011)
+                else:
+                    ctypes.windll.user32.SetWindowDisplayAffinity(hwnd, 0x00000000)
+        except Exception as e:
+            print(f"Could not set screen capture protection: {e}")
+
+    def toggle_screen_protection(self):
+        """Toggle screen capture protection based on checkbox"""
+        enabled = self.hide_from_capture_var.get()
+
+        # Apply to main window
+        self.set_screen_capture_protection(enabled)
+
+        # Apply to Configuration Window if it's open
+        if CallAssistantGUI._config_window and CallAssistantGUI._config_window.window.winfo_exists():
+            CallAssistantGUI._config_window.set_screen_capture_protection(enabled)
+
+        # Apply to Live Analysis Window if it's open
+        if self.live_analysis_window and self.live_analysis_window.window.winfo_exists():
+            self.live_analysis_window.set_screen_capture_protection(enabled)
+
+        if enabled:
+            messagebox.showinfo("Screen Protection",
+                              "All windows are now hidden from screen captures and screen sharing.\n\n" +
+                              "This includes: Main GUI, Configuration Manager, and Live Analysis Window.")
+        else:
+            messagebox.showinfo("Screen Protection",
+                              "All windows are now visible in screen captures and screen sharing.")
 
     def setup_styles(self):
         """Configure ttk styles for modern look"""
@@ -111,7 +247,7 @@ class CallAssistantGUI:
         # ============================================
         # HEADER
         # ============================================
-        header_frame = ttk.Frame(self.root, style='Header.TFrame', height=100)
+        header_frame = ttk.Frame(self.root, style='Header.TFrame', height=80)
         header_frame.grid(row=0, column=0, sticky=(tk.W, tk.E), padx=0, pady=0)
         header_frame.grid_propagate(False)
 
@@ -123,21 +259,96 @@ class CallAssistantGUI:
                  style='Subtitle.TLabel').pack(pady=(5, 0))
 
         # ============================================
-        # MAIN CONTAINER
+        # SCROLLABLE MAIN CONTAINER
         # ============================================
-        main_container = ttk.Frame(self.root, style='Main.TFrame', padding="20")
-        main_container.grid(row=1, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
+        # Create canvas and scrollbar for scrollable content
+        canvas_container = ttk.Frame(self.root, style='Main.TFrame')
+        canvas_container.grid(row=1, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
 
         self.root.columnconfigure(0, weight=1)
         self.root.rowconfigure(1, weight=1)
+
+        # Create canvas with scrollbar
+        canvas = tk.Canvas(canvas_container, bg=self.COLORS['bg_main'], highlightthickness=0)
+        scrollbar = ttk.Scrollbar(canvas_container, orient="vertical", command=canvas.yview)
+
+        main_container = ttk.Frame(canvas, style='Main.TFrame', padding="20")
+
+        # Configure canvas
+        canvas.configure(yscrollcommand=scrollbar.set)
+
+        # Pack scrollbar and canvas
+        scrollbar.pack(side="right", fill="y")
+        canvas.pack(side="left", fill="both", expand=True)
+
+        # Create window in canvas
+        canvas_window = canvas.create_window((0, 0), window=main_container, anchor="nw")
+
+        # Configure canvas scrolling
+        def configure_scroll_region(event=None):
+            canvas.configure(scrollregion=canvas.bbox("all"))
+
+        def configure_canvas_width(event):
+            canvas.itemconfig(canvas_window, width=event.width)
+
+        main_container.bind("<Configure>", configure_scroll_region)
+        canvas.bind("<Configure>", configure_canvas_width)
+
+        # Enable mousewheel scrolling
+        def on_mousewheel(event):
+            canvas.yview_scroll(int(-1*(event.delta/120)), "units")
+
+        canvas.bind_all("<MouseWheel>", on_mousewheel)
+
         main_container.columnconfigure(0, weight=1)
-        main_container.rowconfigure(2, weight=1)
+
+        # ============================================
+        # CONTROL PANEL (moved to top for visibility)
+        # ============================================
+        control_card = ttk.Frame(main_container, style='Card.TFrame',
+                                relief='solid', borderwidth=1)
+        control_card.grid(row=0, column=0, sticky=(tk.W, tk.E), pady=(0, 15))
+
+        control_content = ttk.Frame(control_card, style='Card.TFrame')
+        control_content.pack(fill='both', expand=True, padx=20, pady=15)
+
+        # Buttons Row
+        button_container = ttk.Frame(control_content, style='Card.TFrame')
+        button_container.pack(fill='x', pady=(0, 10))
+
+        self.start_button = tk.Button(button_container, text="▶ Start Recording",
+                                      command=self.start_recording,
+                                      bg=self.COLORS['success'], fg='white',
+                                      font=('Segoe UI', 12, 'bold'),
+                                      relief='flat', padx=40, pady=15,
+                                      cursor='hand2')
+        self.start_button.pack(side='left', padx=(0, 10))
+
+        self.stop_button = tk.Button(button_container, text="■ Stop & Generate Report",
+                                     command=self.stop_recording,
+                                     bg=self.COLORS['danger'], fg='white',
+                                     font=('Segoe UI', 12, 'bold'),
+                                     relief='flat', padx=40, pady=15,
+                                     state='disabled', cursor='hand2')
+        self.stop_button.pack(side='left')
+
+        # Status Row
+        status_container = ttk.Frame(control_content, style='Card.TFrame')
+        status_container.pack(fill='x')
+
+        ttk.Label(status_container, text="Status:", style='CardLabel.TLabel').pack(side='left', padx=(0, 10))
+        self.status_var = tk.StringVar(value="Ready")
+        self.status_label = tk.Label(status_container, textvariable=self.status_var,
+                                     bg=self.COLORS['bg_card'],
+                                     fg=self.COLORS['text_secondary'],
+                                     font=('Segoe UI', 10, 'bold'))
+        self.status_label.pack(side='left')
 
         # ============================================
         # API CONFIGURATION CARD
         # ============================================
         api_card = self.create_card(main_container, "⚙️ API Configuration")
-        api_card.grid(row=0, column=0, sticky=(tk.W, tk.E), pady=(0, 15))
+        api_card.grid(row=1, column=0, sticky=(tk.W, tk.E), pady=(0, 15))
 
         api_content = ttk.Frame(api_card, style='Card.TFrame')
         api_content.pack(fill='both', expand=True, padx=15, pady=15)
@@ -194,7 +405,7 @@ class CallAssistantGUI:
         # SESSION CONFIGURATION CARD
         # ============================================
         session_card = self.create_card(main_container, "📝 Session Configuration")
-        session_card.grid(row=1, column=0, sticky=(tk.W, tk.E), pady=(0, 15))
+        session_card.grid(row=2, column=0, sticky=(tk.W, tk.E), pady=(0, 15))
 
         session_content = ttk.Frame(session_card, style='Card.TFrame')
         session_content.pack(fill='both', expand=True, padx=15, pady=15)
@@ -245,53 +456,10 @@ class CallAssistantGUI:
         ttk.Entry(listener_frame, textvariable=self.listener_label_var, width=15).pack(pady=(5, 0))
 
         # ============================================
-        # CONTROL PANEL
-        # ============================================
-        control_card = ttk.Frame(main_container, style='Card.TFrame',
-                                relief='solid', borderwidth=1)
-        control_card.grid(row=2, column=0, sticky=(tk.W, tk.E), pady=(0, 15))
-
-        control_content = ttk.Frame(control_card, style='Card.TFrame')
-        control_content.pack(fill='both', expand=True, padx=20, pady=20)
-
-        # Buttons Row
-        button_container = ttk.Frame(control_content, style='Card.TFrame')
-        button_container.pack(fill='x', pady=(0, 15))
-
-        self.start_button = tk.Button(button_container, text="▶ Start Recording",
-                                      command=self.start_recording,
-                                      bg=self.COLORS['success'], fg='white',
-                                      font=('Segoe UI', 11, 'bold'),
-                                      relief='flat', padx=30, pady=12,
-                                      cursor='hand2')
-        self.start_button.pack(side='left', padx=(0, 10))
-
-        self.stop_button = tk.Button(button_container, text="■ Stop & Generate Report",
-                                     command=self.stop_recording,
-                                     bg=self.COLORS['danger'], fg='white',
-                                     font=('Segoe UI', 11, 'bold'),
-                                     relief='flat', padx=30, pady=12,
-                                     state='disabled', cursor='hand2')
-        self.stop_button.pack(side='left')
-
-        # Status Row
-        status_container = ttk.Frame(control_content, style='Card.TFrame')
-        status_container.pack(fill='x')
-
-        ttk.Label(status_container, text="Status:", style='CardLabel.TLabel').pack(side='left', padx=(0, 10))
-        self.status_var = tk.StringVar(value="Ready")
-        self.status_label = tk.Label(status_container, textvariable=self.status_var,
-                                     bg=self.COLORS['bg_card'],
-                                     fg=self.COLORS['text_secondary'],
-                                     font=('Segoe UI', 10, 'bold'))
-        self.status_label.pack(side='left')
-
-        # ============================================
         # LIVE DISPLAY CARD
         # ============================================
         display_card = self.create_card(main_container, "💬 Live Transcript & AI Feedback")
-        display_card.grid(row=3, column=0, sticky=(tk.W, tk.E, tk.N, tk.S), pady=(0, 15))
-        main_container.rowconfigure(3, weight=1)
+        display_card.grid(row=3, column=0, sticky=(tk.W, tk.E), pady=(0, 15))
 
         display_content = ttk.Frame(display_card, style='Card.TFrame')
         display_content.pack(fill='both', expand=True, padx=15, pady=15)
@@ -339,7 +507,14 @@ class CallAssistantGUI:
                  font=('Segoe UI', 9, 'bold'),
                  relief='solid', borderwidth=1,
                  padx=15, pady=8,
-                 cursor='hand2').pack(side='left')
+                 cursor='hand2').pack(side='left', padx=(0, 10))
+
+        # Screen capture protection checkbox
+        self.hide_from_capture_var = tk.BooleanVar(value=False)
+        hide_check = ttk.Checkbutton(toolbar, text="🔒 Hide from screen capture",
+                                    variable=self.hide_from_capture_var,
+                                    command=self.toggle_screen_protection)
+        hide_check.pack(side='left')
 
         ttk.Label(toolbar, text="AI Call Assistant v2.0 | Modern Edition",
                  style='Status.TLabel').pack(side='right')
@@ -378,6 +553,11 @@ class CallAssistantGUI:
                 if config.get("audio_model"):
                     self.audio_model_var.set(config.get("audio_model"))
 
+                # Load screen capture protection setting
+                if config.get("hide_from_capture"):
+                    self.hide_from_capture_var.set(True)
+                    self.set_screen_capture_protection(True)
+
                 self.append_to_display("Configuration loaded successfully.\n", "info")
         except Exception as e:
             self.append_to_display(f"Error loading config: {e}\n", "error")
@@ -403,7 +583,8 @@ class CallAssistantGUI:
                 "active_final_report_prompt": "default",
                 "api_key": self.api_key_var.get(),
                 "llm_model": self.llm_model_var.get(),
-                "audio_model": self.audio_model_var.get()
+                "audio_model": self.audio_model_var.get(),
+                "hide_from_capture": self.hide_from_capture_var.get()
             }
 
             config_path = Path(__file__).parent / "config.json"
@@ -470,6 +651,11 @@ class CallAssistantGUI:
         self.append_to_display(f"LLM: {self.llm_model_var.get()}\n", "info")
         self.append_to_display(f"Audio: {self.audio_model_var.get()}\n", "info")
         self.append_to_display("="*50 + "\n\n", "info")
+
+        # Open Live Analysis Window with screen protection if enabled
+        protection_enabled = self.hide_from_capture_var.get()
+        self.live_analysis_window = LiveAnalysisWindow(self.root, apply_protection=protection_enabled)
+        self.live_analysis_window.append_analysis("🎙️ Recording started...\n\n", "ai")
 
         self.recording_thread = threading.Thread(target=self.run_assistant, daemon=True)
         self.recording_thread.start()
@@ -538,12 +724,22 @@ class CallAssistantGUI:
                 tag, message = self.transcript_queue.get_nowait()
                 self.append_to_display(message, tag)
 
+                # Also send AI-related messages to Live Analysis Window
+                if self.live_analysis_window and self.live_analysis_window.window.winfo_exists():
+                    # Check if message contains AI analysis markers
+                    if any(marker in message for marker in ["🔧", "❓", "📋", "💡", "⚠️", "✅", "🚨"]):
+                        self.live_analysis_window.append_analysis(message, "ai")
+
                 if tag == "done":
                     self.is_running = False
                     self.start_button.config(state='normal', bg=self.COLORS['success'])
                     self.stop_button.config(state='disabled', bg='#9CA3AF')
                     self.status_var.set("Ready")
                     self.status_label.config(fg=self.COLORS['text_secondary'])
+
+                    # Close Live Analysis Window
+                    if self.live_analysis_window and self.live_analysis_window.window.winfo_exists():
+                        self.live_analysis_window.append_analysis("\n✅ Recording completed.\n", "ai")
         except queue.Empty:
             pass
 
@@ -568,6 +764,9 @@ class CallAssistantGUI:
         # Singleton pattern - only one configuration window at a time
         if CallAssistantGUI._config_window is None or not CallAssistantGUI._config_window.window.winfo_exists():
             CallAssistantGUI._config_window = ConfigurationWindow(self.root)
+            # Apply screen protection if enabled
+            if self.hide_from_capture_var.get():
+                CallAssistantGUI._config_window.set_screen_capture_protection(True)
         else:
             # Bring existing window to front
             CallAssistantGUI._config_window.window.lift()
