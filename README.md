@@ -14,6 +14,49 @@ Perfect for: team meetings, code reviews, interviews, project check-ins, and any
 - 📊 **Automatic Report Generation**: Creates structured markdown reports with participant breakdown
 - ⚙️ **Highly Configurable**: All prompts, participants, and settings externally manageable
 - 🌍 **Multi-Language Support**: Works with German, English, and other languages supported by Whisper
+- 🖥️ **Graphical User Interface**: Easy-to-use GUI for configuration and control
+- ✏️ **Visual Prompt Editor**: Customize AI behavior directly in the GUI without editing files
+
+---
+
+## 🎛️ Two Ways to Use
+
+### Option 1: Graphical User Interface (Recommended for Beginners)
+
+The easiest way to use the AI Call Assistant is through the graphical interface:
+
+```bash
+python CallAssistantGUI.py
+```
+
+**Features of the GUI:**
+- Visual configuration of all settings (no config file editing needed)
+- API key and model selection with dropdowns
+- Real-time transcript and AI feedback display
+- One-click Start/Stop recording
+- Automatic configuration saving
+- Status indicators and error messages
+- Built-in prompt editor for customizing AI behavior
+
+**Perfect for:**
+- First-time users
+- Quick configuration changes
+- Visual feedback during recording
+- Users who prefer graphical interfaces
+
+### Option 2: Command Line (Advanced Users)
+
+For advanced users who prefer terminal-based workflows:
+
+```bash
+python CallAssistant.py
+```
+
+**Perfect for:**
+- Automation and scripting
+- Server deployments
+- Minimal resource usage
+- Integration with other tools
 
 ---
 
@@ -21,7 +64,8 @@ Perfect for: team meetings, code reviews, interviews, project check-ins, and any
 
 ```
 Multiplattform-KI-Call-Assistant/
-├── CallAssistant.py             # Main program
+├── CallAssistant.py             # Main program (command-line)
+├── CallAssistantGUI.py          # Graphical User Interface
 ├── config.json                  # Configuration (participants, session, etc.)
 ├── config.example.json          # Configuration template with detailed comments
 ├── requirements.txt             # Python dependencies
@@ -161,6 +205,160 @@ The assistant will:
 2. Analyze the complete transcript
 3. Generate the session report
 4. Save it as `Session_Report.md` (or your configured filename)
+
+---
+
+## 🖥️ Using the Graphical Interface
+
+For a more user-friendly experience, use the GUI version:
+
+### 1. Launch the GUI
+
+```bash
+python CallAssistantGUI.py
+```
+
+A window will open with the AI Call Assistant Control Panel.
+
+### 2. Configure API Settings
+
+In the **API Configuration** section:
+- **OpenRouter API Key**: Enter your API key (will be hidden by default)
+  - Check "Show" to reveal the key
+  - Or load from `.env` file (recommended)
+- **LLM Model**: Select the AI model for analysis from the dropdown
+  - Default: `qwen/qwen3-vl-30b-a3b-instruct` (cost-effective)
+  - Premium: `anthropic/claude-3-opus` or `openai/gpt-4-turbo`
+- **Audio Model**: Select the Whisper model for transcription
+  - Default: `openai/whisper-large-v3-turbo` (fast and accurate)
+
+### 3. Configure Session Settings
+
+In the **Session Configuration** section:
+- **Participants**: Enter names separated by commas (e.g., `Alice, Bob, Charlie`)
+- **Session Number**: Set the session/milestone number
+- **Output File**: Specify the report filename (e.g., `Meeting_Report.md`)
+- **Speaker Label**: Label for your microphone audio (e.g., `Moderator`, `Tutor`)
+- **Listener Label**: Label for loopback audio (e.g., `Participants`, `Students`)
+
+### 4. Save Configuration
+
+Click **Save Configuration** to save settings to `config.json`. This ensures your preferences are preserved.
+
+### 5. Start Recording
+
+Click **Start Recording** to begin:
+- Status will change to "Recording..."
+- Live transcripts will appear in the display area
+- AI feedback will be shown in real-time
+
+### 6. Monitor Live Output
+
+The **Live Transcript & AI Feedback** section shows:
+- Real-time transcriptions with speaker labels
+- AI insights and suggestions
+- System messages and status updates
+- Color-coded messages (blue: info, red: errors)
+
+### 7. Stop Recording
+
+Click **Stop & Generate Report** to:
+- Stop the recording
+- Generate the final session report
+- Save the report to your specified output file
+
+### 8. Review Report
+
+Open the generated markdown file (e.g., `Session_Report.md`) in your preferred editor or viewer.
+
+### GUI Features
+
+- **Automatic Validation**: Checks for missing required fields before starting
+- **Session File Warning**: Alerts if the session file doesn't exist
+- **Configuration Persistence**: Saves settings automatically
+- **Visual Feedback**: Color-coded status messages
+- **Clear Display**: Button to clear the transcript view
+- **API Key Security**: Password field for API key (can be toggled)
+- **Prompt Editor**: Built-in editor to customize AI prompts without editing files manually
+  - Switch between Live Analysis and Final Report prompts
+  - Edit prompts with syntax highlighting
+  - Save changes with confirmation
+  - Reset to original content
+
+---
+
+## ✏️ Customizing AI Prompts with the GUI
+
+The GUI includes a built-in prompt editor that makes it easy to customize how the AI behaves without manually editing files.
+
+### Opening the Prompt Editor
+
+1. Launch the GUI: `python CallAssistantGUI.py`
+2. Click the **Edit Prompts** button at the bottom of the main window
+3. A new window will open with the Prompt Editor
+
+### Using the Prompt Editor
+
+**Select a Prompt:**
+- Use the dropdown to choose between:
+  - **Live Analysis**: Controls real-time feedback during calls
+  - **Final Report**: Defines the structure of session reports
+
+**Load the Prompt:**
+- Click **Load** to view the current prompt content
+- The description below shows what this prompt does
+
+**Edit the Content:**
+- Modify the text in the editor as needed
+- Use placeholders like `{participants_list}`, `{session_number}`, `{session_content}`
+- The editor uses a monospace font for better readability
+
+**Save Changes:**
+- Click **Save Changes** to write your modifications
+- You'll be asked to confirm before saving
+- Original files are overwritten (backup recommended)
+
+**Reset to Original:**
+- Click **Reset to Original** to discard unsaved changes
+- This restores the content to what was last loaded
+
+### Tips for Prompt Editing
+
+**Live Analysis Prompt:**
+- Controls the tone and style of real-time feedback
+- Adjust to be more/less technical
+- Change focus areas (e.g., only code review, only questions)
+- Modify output format
+
+**Final Report Prompt:**
+- Customize report structure and sections
+- Add or remove table columns
+- Change formatting style
+- Adjust level of detail
+
+**Using Placeholders:**
+The prompts support these dynamic placeholders:
+- `{participants_list}`: Comma-separated list of participant names
+- `{session_number}`: Current session number
+- `{session_content}`: Content from `sessions/session_X.txt`
+- `{participants_table}`: Auto-generated HTML table for participants
+
+**Example Customizations:**
+
+*Making Live Analysis More Technical:*
+```
+Original: "Provide constructive feedback..."
+Modified: "Provide technical code review feedback focusing on best practices..."
+```
+
+*Adding a New Report Section:*
+```
+## Code Quality Metrics
+
+- Lines of code reviewed: [X]
+- Issues found: [Y]
+- Suggestions implemented: [Z]
+```
 
 ---
 
@@ -628,14 +826,20 @@ Built with:
 
 ## 🗺️ Roadmap
 
+Completed features:
+- [✅] Desktop GUI with Tkinter (configuration, control, live display)
+- [✅] Custom prompt editor in GUI (edit prompts visually)
+
 Future improvements:
-- [ ] Web-based UI
+- [ ] Web-based UI (Flask/FastAPI)
 - [ ] Local Whisper support (no API required)
 - [ ] Multi-language live analysis
 - [ ] Export to PDF/Word
 - [ ] Integration with calendar apps
 - [ ] Automatic meeting scheduling detection
 - [ ] Speaker diarization (identify who said what)
+- [ ] Audio device selection in GUI
+- [ ] Session file editor in GUI
 
 ---
 

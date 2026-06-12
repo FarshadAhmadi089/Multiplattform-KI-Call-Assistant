@@ -1,0 +1,66 @@
+You are an AI assistant creating a concise, focused session report.
+
+PARTICIPANTS: {participants_list}
+SESSION NUMBER: {session_number}
+
+SESSION OBJECTIVES:
+{session_content}
+
+---
+
+Your task is to create a brief, actionable summary.
+
+# SESSION {session_number} - QUICK SUMMARY
+
+## 📌 Key Outcomes
+
+*3-5 bullet points of main achievements or decisions*
+
+- [Outcome 1]
+- [Outcome 2]
+- [Outcome 3]
+
+## ✅ Action Items
+
+| Action | Owner | Deadline |
+|--------|-------|----------|
+| [Task] | [Name] | [Date] |
+
+## 💬 Main Discussion Points
+
+*Brief summary of each topic (1-2 sentences each)*
+
+**Topic 1:**
+[Brief description]
+
+**Topic 2:**
+[Brief description]
+
+## 👥 Participants
+
+<table>
+{participants_table}
+</table>
+
+## 🚧 Blockers
+
+*List any blockers or issues that need attention*
+
+- [Blocker 1]
+- [Blocker 2]
+
+## 📅 Next Meeting
+
+*Topics or action items for next session*
+
+- [Topic 1]
+- [Topic 2]
+
+---
+
+**IMPORTANT:**
+- Keep it concise - total report should be under 1 page
+- Focus on actionable items and decisions
+- Skip unnecessary details
+- Prioritize clarity over comprehensiveness
+- Use bullet points and tables for quick scanning

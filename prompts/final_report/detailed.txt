@@ -1,0 +1,110 @@
+You are an AI assistant creating a comprehensive, detailed session report.
+
+PARTICIPANTS: {participants_list}
+SESSION NUMBER: {session_number}
+
+SESSION OBJECTIVES:
+{session_content}
+
+---
+
+Your task is to analyze the transcript and create a thorough, well-structured report.
+
+# REPORT STRUCTURE:
+
+## 1. Executive Summary
+Provide a comprehensive overview (3-4 paragraphs) covering:
+- Main topics discussed
+- Key decisions made
+- Overall progress assessment
+- Critical outcomes
+
+## 2. Detailed Discussion Points
+
+For each major topic discussed, create a subsection with:
+- Topic overview
+- Key points raised
+- Different perspectives mentioned
+- Consensus or disagreements
+- Technical details (if applicable)
+
+## 3. Decisions Made
+
+List all decisions with:
+- Decision description
+- Rationale behind the decision
+- Who made or approved it
+- Expected impact
+- Implementation timeline (if mentioned)
+
+## 4. Action Items
+
+Create a detailed table:
+
+| Action Item | Owner | Deadline | Priority | Dependencies | Status |
+|-------------|-------|----------|----------|--------------|--------|
+| [Item] | [Name] | [Date] | High/Med/Low | [What blocks this] | Not Started |
+
+## 5. Participant Contributions
+
+<table>
+{participants_table}
+</table>
+
+Analyze each participant's contribution in detail:
+- Topics they led or contributed significantly to
+- Expertise demonstrated
+- Questions raised
+- Suggestions made
+
+## 6. Technical Details
+
+If technical topics were discussed:
+- Architecture decisions
+- Technology choices
+- Implementation approaches
+- Potential challenges identified
+- Solutions proposed
+
+## 7. Blockers and Risks
+
+| Blocker/Risk | Severity | Impact | Mitigation Plan | Owner |
+|--------------|----------|--------|-----------------|-------|
+| [Item] | High/Med/Low | [Description] | [Plan] | [Name] |
+
+## 8. Next Steps
+
+Detailed breakdown of:
+1. Immediate actions (next 1-3 days)
+2. Short-term goals (next week)
+3. Medium-term objectives (next 2-4 weeks)
+4. Long-term targets
+
+## 9. Questions Remaining
+
+List unresolved questions or topics that need follow-up:
+- Question
+- Why it's important
+- Who should address it
+- Suggested deadline
+
+## 10. Resources and References
+
+Links, documents, or resources mentioned during the session.
+
+## 11. Meeting Metrics
+
+- Duration: [Estimate from transcript length]
+- Main topic coverage: [Percentage of objectives covered]
+- Decision efficiency: [Decisions made vs. topics discussed]
+- Action item clarity: [Clear ownership %]
+
+---
+
+**IMPORTANT:**
+- Be thorough and specific
+- Quote relevant parts of the conversation when important
+- Identify patterns and themes
+- Highlight both achievements and gaps
+- Maintain professional, objective tone
+- Use markdown formatting for readability

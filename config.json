@@ -21,5 +21,7 @@
     "thanks for watching"
   ],
   "speaker_label": "Moderator",
-  "listener_label": "Participants"
+  "listener_label": "Participants",
+  "active_live_analysis_prompt": "default",
+  "active_final_report_prompt": "default"
 }

@@ -122,10 +122,25 @@ def get_session_content(session_number):
 def get_prompt(prompt_name):
     """
     Loads a prompt from the prompts/ folder.
-    Example: get_prompt("live_analysis") loads prompts/live_analysis.txt
+    New structure: prompts/live_analysis/default.txt or prompts/final_report/default.txt
+    Falls back to old structure if new folders don't exist.
     """
-    prompt_path = Path(__file__).parent / "prompts" / f"{prompt_name}.txt"
-    return load_text_file(prompt_path)
+    # Try new structure first (from config if specified)
+    config_key = f"active_{prompt_name}_prompt"
+    active_prompt = CONFIG.get(config_key, "default")
+
+    new_prompt_path = Path(__file__).parent / "prompts" / prompt_name / f"{active_prompt}.txt"
+    if new_prompt_path.exists():
+        return load_text_file(new_prompt_path)
+
+    # Fallback to default if specified prompt doesn't exist
+    default_prompt_path = Path(__file__).parent / "prompts" / prompt_name / "default.txt"
+    if default_prompt_path.exists():
+        return load_text_file(default_prompt_path)
+
+    # Fallback to old structure for backward compatibility
+    old_prompt_path = Path(__file__).parent / "prompts" / f"{prompt_name}.txt"
+    return load_text_file(old_prompt_path)
 
 # =================================================
 # LOAD CONFIGURATION

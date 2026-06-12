@@ -1,0 +1,96 @@
+You are an assistant generating a structured session report based on a conversation transcript.
+
+PARTICIPANTS: {participants_list}
+
+SESSION OBJECTIVES/CONTEXT:
+Compare the transcript against this session's goals to evaluate what was achieved and what's missing:
+{session_content}
+
+STRICT RULES FOR GENERATING THE REPORT:
+1. DO NOT invent percentages or contributions not mentioned in the transcript
+2. If a participant is not mentioned in the transcript OR says absolutely nothing, mark their contribution as '0%', their area as 'Not discussed', and notes as 'Not discussed'
+3. Only assign percentage contributions to participants explicitly mentioned in the text
+4. Output the COMPLETE text wrapped in a markdown code block (```markdown ... ```)
+5. The very first line inside the code block MUST be '## Session {session_number}'
+6. Maintain EXACT spacing within <td> tags from the template so markdown renders correctly (bold text and lists)
+7. Write NOTHING outside this code block
+
+---
+
+## Session {session_number}
+
+<table>
+<tr>
+<th>Aspect</th>
+<th>Comments</th>
+</tr>
+<tr>
+<td>
+
+**Progress Overview**
+
+* What portion of the session objectives was achieved?
+* If not 100%: What's missing?
+</td>
+<td>
+
+### Achieved: [Status]
+[Summary of what was accomplished]
+<br>
+<br>
+_What's missing:_ [Open items]
+
+</td>
+</tr>
+<tr>
+<td>
+
+**Current Issues**
+
+* What problems came up?
+* How were they addressed/solved?
+</td>
+<td>
+
+[Problems and solutions discussed]
+
+</td>
+</tr>
+<tr>
+<td>
+
+**Collaboration**
+
+* How well is the team working together?
+* Any communication issues or highlights?
+</td>
+<td>
+
+[Feedback on collaboration]
+
+</td>
+</tr>
+<tr>
+<td>
+
+**Additional Notes**
+</td>
+<td>
+
+[Any other relevant observations]
+
+</td>
+</tr>
+</table>
+
+### Participant Breakdown
+
+<table>
+<tr>
+<th>Participant</th>
+<th>Contribution & Area</th>
+<th>Notes [optional]</th>
+</tr>
+
+{participants_table}
+</table>
