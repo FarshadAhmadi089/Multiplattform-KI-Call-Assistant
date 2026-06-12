@@ -152,6 +152,7 @@ class CallAssistantGUI:
         # Create UI
         self.create_widgets()
         self.load_config()
+        self.setup_hotkeys()
 
     def set_screen_capture_protection(self, enable=True):
         """Enable or disable screen capture protection (Windows only)"""
@@ -191,6 +192,38 @@ class CallAssistantGUI:
         else:
             messagebox.showinfo("Screen Protection",
                               "All windows are now visible in screen captures and screen sharing.")
+
+    def setup_hotkeys(self):
+        """Setup keyboard shortcuts for Start/Stop recording"""
+        # Load hotkeys from config or use defaults
+        config_path = Path(__file__).parent / "config.json"
+        start_hotkey = "<F9>"  # Default
+        stop_hotkey = "<F10>"  # Default
+
+        try:
+            if config_path.exists():
+                with open(config_path, 'r', encoding='utf-8') as f:
+                    config = json.load(f)
+                    start_hotkey = config.get("start_hotkey", "<F9>")
+                    stop_hotkey = config.get("stop_hotkey", "<F10>")
+        except:
+            pass
+
+        # Bind hotkeys
+        self.root.bind(start_hotkey, lambda event: self.start_recording())
+        self.root.bind(stop_hotkey, lambda event: self.stop_recording())
+
+        # Store current hotkeys
+        self.start_hotkey = start_hotkey
+        self.stop_hotkey = stop_hotkey
+
+        # Update labels if they exist
+        if hasattr(self, 'start_hotkey_label'):
+            display_key = start_hotkey.replace("<", "").replace(">", "")
+            self.start_hotkey_label.config(text=f"Hotkey: {display_key}")
+        if hasattr(self, 'stop_hotkey_label'):
+            display_key = stop_hotkey.replace("<", "").replace(">", "")
+            self.stop_hotkey_label.config(text=f"Hotkey: {display_key}")
 
     def setup_styles(self):
         """Configure ttk styles for modern look"""
@@ -314,23 +347,43 @@ class CallAssistantGUI:
 
         # Buttons Row
         button_container = ttk.Frame(control_content, style='Card.TFrame')
-        button_container.pack(fill='x', pady=(0, 10))
+        button_container.pack(fill='x', pady=(0, 5))
 
-        self.start_button = tk.Button(button_container, text="▶ Start Recording",
+        # Start button with hotkey info
+        start_frame = ttk.Frame(button_container, style='Card.TFrame')
+        start_frame.pack(side='left', padx=(0, 20))
+
+        self.start_button = tk.Button(start_frame, text="▶ Start Recording",
                                       command=self.start_recording,
                                       bg=self.COLORS['success'], fg='white',
                                       font=('Segoe UI', 12, 'bold'),
                                       relief='flat', padx=40, pady=15,
                                       cursor='hand2')
-        self.start_button.pack(side='left', padx=(0, 10))
+        self.start_button.pack()
 
-        self.stop_button = tk.Button(button_container, text="■ Stop & Generate Report",
+        self.start_hotkey_label = tk.Label(start_frame, text="Hotkey: F9",
+                                          bg=self.COLORS['bg_card'],
+                                          fg=self.COLORS['text_secondary'],
+                                          font=('Segoe UI', 8))
+        self.start_hotkey_label.pack(pady=(3, 0))
+
+        # Stop button with hotkey info
+        stop_frame = ttk.Frame(button_container, style='Card.TFrame')
+        stop_frame.pack(side='left')
+
+        self.stop_button = tk.Button(stop_frame, text="■ Stop & Generate Report",
                                      command=self.stop_recording,
                                      bg=self.COLORS['danger'], fg='white',
                                      font=('Segoe UI', 12, 'bold'),
                                      relief='flat', padx=40, pady=15,
                                      state='disabled', cursor='hand2')
-        self.stop_button.pack(side='left')
+        self.stop_button.pack()
+
+        self.stop_hotkey_label = tk.Label(stop_frame, text="Hotkey: F10",
+                                         bg=self.COLORS['bg_card'],
+                                         fg=self.COLORS['text_secondary'],
+                                         font=('Segoe UI', 8))
+        self.stop_hotkey_label.pack(pady=(3, 0))
 
         # Status Row
         status_container = ttk.Frame(control_content, style='Card.TFrame')
@@ -584,7 +637,9 @@ class CallAssistantGUI:
                 "api_key": self.api_key_var.get(),
                 "llm_model": self.llm_model_var.get(),
                 "audio_model": self.audio_model_var.get(),
-                "hide_from_capture": self.hide_from_capture_var.get()
+                "hide_from_capture": self.hide_from_capture_var.get(),
+                "start_hotkey": getattr(self, 'start_hotkey', '<F9>'),
+                "stop_hotkey": getattr(self, 'stop_hotkey', '<F10>')
             }
 
             config_path = Path(__file__).parent / "config.json"
