@@ -1,15 +1,7 @@
 """
-AI Call Assistant - Graphical User Interface
-=============================================
-A user-friendly GUI for the AI Call Assistant that allows easy configuration
-and control of recording sessions without editing config files.
-
-Features:
-- Configure API keys and models
-- Set up participants and session details
-- Start/Stop recording with buttons
-- View live transcripts and AI feedback
-- Automatic config saving
+AI Call Assistant - Modern Graphical User Interface
+===================================================
+A beautiful, user-friendly GUI with modern styling
 """
 
 import tkinter as tk
@@ -21,179 +13,346 @@ import os
 import sys
 from pathlib import Path
 
-# CallAssistant will be imported dynamically when needed
-# This prevents API key validation on GUI startup
-
 # Import the ConfigurationWindow
-from ConfigurationWindow import ConfigurationWindow
+from ConfigurationWindow import StyledConfigurationWindow as ConfigurationWindow
 
 
 class CallAssistantGUI:
+    # Modern Color Scheme
+    COLORS = {
+        'primary': '#2563EB',      # Blue
+        'primary_dark': '#1E40AF',
+        'primary_light': '#DBEAFE',
+        'secondary': '#10B981',    # Green
+        'danger': '#EF4444',       # Red
+        'warning': '#F59E0B',      # Orange
+        'bg_main': '#F9FAFB',      # Light gray
+        'bg_card': '#FFFFFF',
+        'bg_dark': '#1F2937',
+        'text_primary': '#111827',
+        'text_secondary': '#6B7280',
+        'border': '#E5E7EB',
+        'success': '#10B981'
+    }
+
+    # Class variable for singleton Configuration Window
+    _config_window = None
+
     def __init__(self, root):
         self.root = root
-        self.root.title("AI Call Assistant - Control Panel")
-        self.root.geometry("900x700")
+        self.root.title("🎙️ AI Call Assistant")
+        self.root.geometry("1000x750")
+        self.root.configure(bg=self.COLORS['bg_main'])
 
         # State variables
         self.is_running = False
         self.recording_thread = None
         self.transcript_queue = queue.Queue()
 
+        # Configure style
+        self.setup_styles()
+
         # Create UI
         self.create_widgets()
         self.load_config()
 
+    def setup_styles(self):
+        """Configure ttk styles for modern look"""
+        style = ttk.Style()
+        style.theme_use('clam')
+
+        # Configure frames
+        style.configure('Card.TFrame', background=self.COLORS['bg_card'], relief='flat')
+        style.configure('Main.TFrame', background=self.COLORS['bg_main'])
+        style.configure('Header.TFrame', background=self.COLORS['primary'])
+
+        # Configure labels
+        style.configure('Header.TLabel',
+                       background=self.COLORS['primary'],
+                       foreground='white',
+                       font=('Segoe UI', 20, 'bold'))
+        style.configure('Subtitle.TLabel',
+                       background=self.COLORS['primary'],
+                       foreground='white',
+                       font=('Segoe UI', 10))
+        style.configure('SectionTitle.TLabel',
+                       background=self.COLORS['bg_card'],
+                       foreground=self.COLORS['text_primary'],
+                       font=('Segoe UI', 11, 'bold'))
+        style.configure('CardLabel.TLabel',
+                       background=self.COLORS['bg_card'],
+                       foreground=self.COLORS['text_primary'])
+        style.configure('Status.TLabel',
+                       background=self.COLORS['bg_card'],
+                       foreground=self.COLORS['text_secondary'],
+                       font=('Segoe UI', 9))
+
+        # Configure buttons
+        style.configure('Primary.TButton',
+                       font=('Segoe UI', 10, 'bold'),
+                       padding=(20, 10))
+        style.configure('Success.TButton',
+                       font=('Segoe UI', 10, 'bold'),
+                       padding=(20, 10))
+        style.configure('Danger.TButton',
+                       font=('Segoe UI', 10, 'bold'),
+                       padding=(20, 10))
+
+        # Configure LabelFrames
+        style.configure('Card.TLabelframe',
+                       background=self.COLORS['bg_card'],
+                       borderwidth=0)
+        style.configure('Card.TLabelframe.Label',
+                       background=self.COLORS['bg_card'],
+                       foreground=self.COLORS['text_primary'],
+                       font=('Segoe UI', 11, 'bold'))
+
     def create_widgets(self):
-        # Main container with padding
-        main_frame = ttk.Frame(self.root, padding="10")
-        main_frame.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
+        # ============================================
+        # HEADER
+        # ============================================
+        header_frame = ttk.Frame(self.root, style='Header.TFrame', height=100)
+        header_frame.grid(row=0, column=0, sticky=(tk.W, tk.E), padx=0, pady=0)
+        header_frame.grid_propagate(False)
 
-        # Configure grid weights
+        header_content = ttk.Frame(header_frame, style='Header.TFrame')
+        header_content.place(relx=0.5, rely=0.5, anchor='center')
+
+        ttk.Label(header_content, text="🎙️  AI Call Assistant", style='Header.TLabel').pack()
+        ttk.Label(header_content, text="Record, Transcribe, and Analyze Conversations with AI",
+                 style='Subtitle.TLabel').pack(pady=(5, 0))
+
+        # ============================================
+        # MAIN CONTAINER
+        # ============================================
+        main_container = ttk.Frame(self.root, style='Main.TFrame', padding="20")
+        main_container.grid(row=1, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
+
         self.root.columnconfigure(0, weight=1)
-        self.root.rowconfigure(0, weight=1)
-        main_frame.columnconfigure(0, weight=1)
+        self.root.rowconfigure(1, weight=1)
+        main_container.columnconfigure(0, weight=1)
+        main_container.rowconfigure(2, weight=1)
 
         # ============================================
-        # API CONFIGURATION SECTION
+        # API CONFIGURATION CARD
         # ============================================
-        api_frame = ttk.LabelFrame(main_frame, text="API Configuration", padding="10")
-        api_frame.grid(row=0, column=0, sticky=(tk.W, tk.E), pady=(0, 10))
-        api_frame.columnconfigure(1, weight=1)
+        api_card = self.create_card(main_container, "⚙️ API Configuration")
+        api_card.grid(row=0, column=0, sticky=(tk.W, tk.E), pady=(0, 15))
 
-        # API Key
-        ttk.Label(api_frame, text="OpenRouter API Key:").grid(row=0, column=0, sticky=tk.W, padx=(0, 5))
+        api_content = ttk.Frame(api_card, style='Card.TFrame')
+        api_content.pack(fill='both', expand=True, padx=15, pady=15)
+
+        # API Key Row
+        api_row1 = ttk.Frame(api_content, style='Card.TFrame')
+        api_row1.pack(fill='x', pady=(0, 10))
+
+        ttk.Label(api_row1, text="OpenRouter API Key", style='CardLabel.TLabel', width=18).pack(side='left')
         self.api_key_var = tk.StringVar(value=os.getenv("OPENROUTER_API_KEY", ""))
-        self.api_key_entry = ttk.Entry(api_frame, textvariable=self.api_key_var, show="*", width=50)
-        self.api_key_entry.grid(row=0, column=1, sticky=(tk.W, tk.E), padx=(0, 5))
+        api_entry = ttk.Entry(api_row1, textvariable=self.api_key_var, show="●", width=40)
+        api_entry.pack(side='left', padx=(10, 5), fill='x', expand=True)
 
         self.show_key_var = tk.BooleanVar()
-        show_key_check = ttk.Checkbutton(api_frame, text="Show", variable=self.show_key_var,
-                                         command=self.toggle_api_key_visibility)
-        show_key_check.grid(row=0, column=2)
+        ttk.Checkbutton(api_row1, text="Show", variable=self.show_key_var,
+                       command=lambda: api_entry.config(show="" if self.show_key_var.get() else "●")
+                       ).pack(side='left')
+
+        # Models Row
+        models_row = ttk.Frame(api_content, style='Card.TFrame')
+        models_row.pack(fill='x')
 
         # LLM Model
-        ttk.Label(api_frame, text="LLM Model:").grid(row=1, column=0, sticky=tk.W, padx=(0, 5), pady=(5, 0))
+        llm_frame = ttk.Frame(models_row, style='Card.TFrame')
+        llm_frame.pack(side='left', fill='x', expand=True, padx=(0, 10))
+
+        ttk.Label(llm_frame, text="LLM Model", style='CardLabel.TLabel').pack(anchor='w')
         self.llm_model_var = tk.StringVar()
         llm_models = [
             "qwen/qwen3-vl-30b-a3b-instruct",
             "anthropic/claude-3-opus",
             "anthropic/claude-3-sonnet",
             "openai/gpt-4-turbo",
-            "openai/gpt-3.5-turbo",
-            "meta-llama/llama-3-70b-instruct"
         ]
-        llm_combo = ttk.Combobox(api_frame, textvariable=self.llm_model_var, values=llm_models, width=47)
-        llm_combo.grid(row=1, column=1, columnspan=2, sticky=(tk.W, tk.E), pady=(5, 0))
+        llm_combo = ttk.Combobox(llm_frame, textvariable=self.llm_model_var, values=llm_models)
+        llm_combo.pack(fill='x', pady=(5, 0))
         llm_combo.set("qwen/qwen3-vl-30b-a3b-instruct")
 
         # Audio Model
-        ttk.Label(api_frame, text="Audio Model:").grid(row=2, column=0, sticky=tk.W, padx=(0, 5), pady=(5, 0))
+        audio_frame = ttk.Frame(models_row, style='Card.TFrame')
+        audio_frame.pack(side='left', fill='x', expand=True)
+
+        ttk.Label(audio_frame, text="Audio Model", style='CardLabel.TLabel').pack(anchor='w')
         self.audio_model_var = tk.StringVar()
         audio_models = [
             "openai/whisper-large-v3-turbo",
             "openai/whisper-large-v3",
-            "openai/whisper-medium",
-            "openai/whisper-small"
         ]
-        audio_combo = ttk.Combobox(api_frame, textvariable=self.audio_model_var, values=audio_models, width=47)
-        audio_combo.grid(row=2, column=1, columnspan=2, sticky=(tk.W, tk.E), pady=(5, 0))
+        audio_combo = ttk.Combobox(audio_frame, textvariable=self.audio_model_var, values=audio_models)
+        audio_combo.pack(fill='x', pady=(5, 0))
         audio_combo.set("openai/whisper-large-v3-turbo")
 
         # ============================================
-        # SESSION CONFIGURATION SECTION
+        # SESSION CONFIGURATION CARD
         # ============================================
-        session_frame = ttk.LabelFrame(main_frame, text="Session Configuration", padding="10")
-        session_frame.grid(row=1, column=0, sticky=(tk.W, tk.E), pady=(0, 10))
-        session_frame.columnconfigure(1, weight=1)
+        session_card = self.create_card(main_container, "📝 Session Configuration")
+        session_card.grid(row=1, column=0, sticky=(tk.W, tk.E), pady=(0, 15))
+
+        session_content = ttk.Frame(session_card, style='Card.TFrame')
+        session_content.pack(fill='both', expand=True, padx=15, pady=15)
+
+        # Row 1
+        row1 = ttk.Frame(session_content, style='Card.TFrame')
+        row1.pack(fill='x', pady=(0, 10))
 
         # Participants
-        ttk.Label(session_frame, text="Participants:").grid(row=0, column=0, sticky=tk.W, padx=(0, 5))
+        part_frame = ttk.Frame(row1, style='Card.TFrame')
+        part_frame.pack(side='left', fill='x', expand=True, padx=(0, 10))
+        ttk.Label(part_frame, text="Participants (comma-separated)", style='CardLabel.TLabel').pack(anchor='w')
         self.participants_var = tk.StringVar()
-        ttk.Entry(session_frame, textvariable=self.participants_var).grid(row=0, column=1, sticky=(tk.W, tk.E))
-        ttk.Label(session_frame, text="(comma-separated)", font=("", 8)).grid(row=0, column=2, sticky=tk.W, padx=(5, 0))
+        ttk.Entry(part_frame, textvariable=self.participants_var).pack(fill='x', pady=(5, 0))
 
         # Session Number
-        ttk.Label(session_frame, text="Session Number:").grid(row=1, column=0, sticky=tk.W, padx=(0, 5), pady=(5, 0))
+        session_frame = ttk.Frame(row1, style='Card.TFrame')
+        session_frame.pack(side='left')
+        ttk.Label(session_frame, text="Session #", style='CardLabel.TLabel').pack(anchor='w')
         self.session_num_var = tk.StringVar()
-        session_spin = ttk.Spinbox(session_frame, from_=1, to=100, textvariable=self.session_num_var, width=10)
-        session_spin.grid(row=1, column=1, sticky=tk.W, pady=(5, 0))
+        ttk.Spinbox(session_frame, from_=1, to=100, textvariable=self.session_num_var, width=10).pack(pady=(5, 0))
+
+        # Row 2
+        row2 = ttk.Frame(session_content, style='Card.TFrame')
+        row2.pack(fill='x', pady=(0, 10))
 
         # Output File
-        ttk.Label(session_frame, text="Output File:").grid(row=2, column=0, sticky=tk.W, padx=(0, 5), pady=(5, 0))
+        output_frame = ttk.Frame(row2, style='Card.TFrame')
+        output_frame.pack(side='left', fill='x', expand=True, padx=(0, 10))
+        ttk.Label(output_frame, text="Output File", style='CardLabel.TLabel').pack(anchor='w')
         self.output_file_var = tk.StringVar()
-        ttk.Entry(session_frame, textvariable=self.output_file_var).grid(row=2, column=1, columnspan=2, sticky=(tk.W, tk.E), pady=(5, 0))
+        ttk.Entry(output_frame, textvariable=self.output_file_var).pack(fill='x', pady=(5, 0))
 
-        # Speaker Label
-        ttk.Label(session_frame, text="Speaker Label:").grid(row=3, column=0, sticky=tk.W, padx=(0, 5), pady=(5, 0))
+        # Labels
+        labels_container = ttk.Frame(row2, style='Card.TFrame')
+        labels_container.pack(side='left', fill='x', expand=True)
+
+        speaker_frame = ttk.Frame(labels_container, style='Card.TFrame')
+        speaker_frame.pack(side='left', fill='x', expand=True, padx=(0, 5))
+        ttk.Label(speaker_frame, text="Speaker Label", style='CardLabel.TLabel').pack(anchor='w')
         self.speaker_label_var = tk.StringVar()
-        ttk.Entry(session_frame, textvariable=self.speaker_label_var, width=20).grid(row=3, column=1, sticky=tk.W, pady=(5, 0))
+        ttk.Entry(speaker_frame, textvariable=self.speaker_label_var, width=15).pack(pady=(5, 0))
 
-        # Listener Label
-        ttk.Label(session_frame, text="Listener Label:").grid(row=4, column=0, sticky=tk.W, padx=(0, 5), pady=(5, 0))
+        listener_frame = ttk.Frame(labels_container, style='Card.TFrame')
+        listener_frame.pack(side='left', fill='x', expand=True, padx=(5, 0))
+        ttk.Label(listener_frame, text="Listener Label", style='CardLabel.TLabel').pack(anchor='w')
         self.listener_label_var = tk.StringVar()
-        ttk.Entry(session_frame, textvariable=self.listener_label_var, width=20).grid(row=4, column=1, sticky=tk.W, pady=(5, 0))
+        ttk.Entry(listener_frame, textvariable=self.listener_label_var, width=15).pack(pady=(5, 0))
 
         # ============================================
-        # CONTROL SECTION
+        # CONTROL PANEL
         # ============================================
-        control_frame = ttk.LabelFrame(main_frame, text="Controls", padding="10")
-        control_frame.grid(row=2, column=0, sticky=(tk.W, tk.E), pady=(0, 10))
+        control_card = ttk.Frame(main_container, style='Card.TFrame',
+                                relief='solid', borderwidth=1)
+        control_card.grid(row=2, column=0, sticky=(tk.W, tk.E), pady=(0, 15))
 
-        # Button frame
-        button_frame = ttk.Frame(control_frame)
-        button_frame.grid(row=0, column=0, columnspan=2)
+        control_content = ttk.Frame(control_card, style='Card.TFrame')
+        control_content.pack(fill='both', expand=True, padx=20, pady=20)
 
-        self.start_button = ttk.Button(button_frame, text="Start Recording", command=self.start_recording, width=20)
-        self.start_button.grid(row=0, column=0, padx=(0, 5))
+        # Buttons Row
+        button_container = ttk.Frame(control_content, style='Card.TFrame')
+        button_container.pack(fill='x', pady=(0, 15))
 
-        self.stop_button = ttk.Button(button_frame, text="Stop & Generate Report", command=self.stop_recording,
-                                      state="disabled", width=20)
-        self.stop_button.grid(row=0, column=1, padx=(5, 0))
+        self.start_button = tk.Button(button_container, text="▶ Start Recording",
+                                      command=self.start_recording,
+                                      bg=self.COLORS['success'], fg='white',
+                                      font=('Segoe UI', 11, 'bold'),
+                                      relief='flat', padx=30, pady=12,
+                                      cursor='hand2')
+        self.start_button.pack(side='left', padx=(0, 10))
 
-        # Status
-        ttk.Label(control_frame, text="Status:").grid(row=1, column=0, sticky=tk.W, pady=(10, 0))
+        self.stop_button = tk.Button(button_container, text="■ Stop & Generate Report",
+                                     command=self.stop_recording,
+                                     bg=self.COLORS['danger'], fg='white',
+                                     font=('Segoe UI', 11, 'bold'),
+                                     relief='flat', padx=30, pady=12,
+                                     state='disabled', cursor='hand2')
+        self.stop_button.pack(side='left')
+
+        # Status Row
+        status_container = ttk.Frame(control_content, style='Card.TFrame')
+        status_container.pack(fill='x')
+
+        ttk.Label(status_container, text="Status:", style='CardLabel.TLabel').pack(side='left', padx=(0, 10))
         self.status_var = tk.StringVar(value="Ready")
-        status_label = ttk.Label(control_frame, textvariable=self.status_var, font=("", 10, "bold"))
-        status_label.grid(row=1, column=1, sticky=tk.W, pady=(10, 0))
+        self.status_label = tk.Label(status_container, textvariable=self.status_var,
+                                     bg=self.COLORS['bg_card'],
+                                     fg=self.COLORS['text_secondary'],
+                                     font=('Segoe UI', 10, 'bold'))
+        self.status_label.pack(side='left')
 
         # ============================================
-        # LIVE DISPLAY SECTION
+        # LIVE DISPLAY CARD
         # ============================================
-        display_frame = ttk.LabelFrame(main_frame, text="Live Transcript & AI Feedback", padding="10")
-        display_frame.grid(row=3, column=0, sticky=(tk.W, tk.E, tk.N, tk.S), pady=(0, 10))
-        display_frame.columnconfigure(0, weight=1)
-        display_frame.rowconfigure(0, weight=1)
-        main_frame.rowconfigure(3, weight=1)
+        display_card = self.create_card(main_container, "💬 Live Transcript & AI Feedback")
+        display_card.grid(row=3, column=0, sticky=(tk.W, tk.E, tk.N, tk.S), pady=(0, 15))
+        main_container.rowconfigure(3, weight=1)
 
-        self.transcript_display = scrolledtext.ScrolledText(display_frame, wrap=tk.WORD, height=15)
-        self.transcript_display.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
+        display_content = ttk.Frame(display_card, style='Card.TFrame')
+        display_content.pack(fill='both', expand=True, padx=15, pady=15)
+
+        # Text display
+        self.transcript_display = scrolledtext.ScrolledText(display_content, wrap=tk.WORD,
+                                                             height=12, font=('Consolas', 9),
+                                                             bg='#FAFAFA', relief='flat',
+                                                             borderwidth=1)
+        self.transcript_display.pack(fill='both', expand=True)
         self.transcript_display.config(state="disabled")
 
+        # Configure tags for colors
+        self.transcript_display.tag_config("info", foreground=self.COLORS['primary'])
+        self.transcript_display.tag_config("error", foreground=self.COLORS['danger'])
+        self.transcript_display.tag_config("success", foreground=self.COLORS['success'])
+
         # Clear button
-        clear_button = ttk.Button(display_frame, text="Clear Display", command=self.clear_display)
-        clear_button.grid(row=1, column=0, sticky=tk.E, pady=(5, 0))
+        clear_btn_container = ttk.Frame(display_content, style='Card.TFrame')
+        clear_btn_container.pack(fill='x', pady=(10, 0))
+
+        tk.Button(clear_btn_container, text="Clear Display",
+                 command=self.clear_display,
+                 bg=self.COLORS['bg_main'], fg=self.COLORS['text_primary'],
+                 font=('Segoe UI', 9),
+                 relief='flat', padx=15, pady=5,
+                 cursor='hand2').pack(side='right')
 
         # ============================================
-        # BOTTOM BUTTONS
+        # BOTTOM TOOLBAR
         # ============================================
-        bottom_frame = ttk.Frame(main_frame)
-        bottom_frame.grid(row=4, column=0, sticky=(tk.W, tk.E))
+        toolbar = ttk.Frame(main_container, style='Main.TFrame')
+        toolbar.grid(row=4, column=0, sticky=(tk.W, tk.E))
 
-        save_config_button = ttk.Button(bottom_frame, text="Save Configuration", command=self.save_config)
-        save_config_button.grid(row=0, column=0, sticky=tk.W)
+        tk.Button(toolbar, text="💾 Save Configuration",
+                 command=self.save_config,
+                 bg=self.COLORS['primary'], fg='white',
+                 font=('Segoe UI', 9, 'bold'),
+                 relief='flat', padx=15, pady=8,
+                 cursor='hand2').pack(side='left', padx=(0, 10))
 
-        config_button = ttk.Button(bottom_frame, text="Configuration", command=self.open_configuration_window)
-        config_button.grid(row=0, column=1, sticky=tk.W, padx=(10, 0))
+        tk.Button(toolbar, text="⚙️ Configuration Manager",
+                 command=self.open_configuration_window,
+                 bg=self.COLORS['bg_card'], fg=self.COLORS['text_primary'],
+                 font=('Segoe UI', 9, 'bold'),
+                 relief='solid', borderwidth=1,
+                 padx=15, pady=8,
+                 cursor='hand2').pack(side='left')
 
-        ttk.Label(bottom_frame, text="AI Call Assistant v1.0", font=("", 8)).grid(row=0, column=2, sticky=tk.E)
-        bottom_frame.columnconfigure(2, weight=1)
+        ttk.Label(toolbar, text="AI Call Assistant v2.0 | Modern Edition",
+                 style='Status.TLabel').pack(side='right')
 
-    def toggle_api_key_visibility(self):
-        """Toggle API key visibility"""
-        if self.show_key_var.get():
-            self.api_key_entry.config(show="")
-        else:
-            self.api_key_entry.config(show="*")
+    def create_card(self, parent, title):
+        """Create a styled card with title"""
+        card = ttk.LabelFrame(parent, text=title, style='Card.TLabelframe',
+                             relief='solid', borderwidth=1)
+        return card
+
+    # ============================================
+    # REMAINING METHODS (unchanged logic, only UI)
+    # ============================================
 
     def load_config(self):
         """Load existing configuration from config.json"""
@@ -203,12 +362,21 @@ class CallAssistantGUI:
                 with open(config_path, 'r', encoding='utf-8') as f:
                     config = json.load(f)
 
-                # Load values into UI
                 self.participants_var.set(", ".join(config.get("participants", [])))
                 self.session_num_var.set(str(config.get("current_session", 1)))
                 self.output_file_var.set(config.get("output_file", "Session_Report.md"))
                 self.speaker_label_var.set(config.get("speaker_label", "Speaker"))
                 self.listener_label_var.set(config.get("listener_label", "Listeners"))
+
+                # Load API key if saved
+                if config.get("api_key"):
+                    self.api_key_var.set(config.get("api_key"))
+
+                # Load models if saved
+                if config.get("llm_model"):
+                    self.llm_model_var.set(config.get("llm_model"))
+                if config.get("audio_model"):
+                    self.audio_model_var.set(config.get("audio_model"))
 
                 self.append_to_display("Configuration loaded successfully.\n", "info")
         except Exception as e:
@@ -217,25 +385,25 @@ class CallAssistantGUI:
     def save_config(self):
         """Save current configuration to config.json"""
         try:
-            # Parse participants
             participants = [p.strip() for p in self.participants_var.get().split(",") if p.strip()]
 
             config = {
                 "participants": participants,
                 "current_session": int(self.session_num_var.get()),
                 "output_file": self.output_file_var.get(),
-                "whisper_keywords": participants,  # Use participants as keywords
+                "whisper_keywords": participants,
                 "hallucination_filter": [
-                    "untertitel",
-                    "vielen dank",
-                    "danke fürs zuschauen",
-                    "abonniert den kanal",
-                    "tschüss",
-                    "like and subscribe",
-                    "thanks for watching"
+                    "untertitel", "vielen dank", "danke fürs zuschauen",
+                    "abonniert den kanal", "tschüss",
+                    "like and subscribe", "thanks for watching"
                 ],
                 "speaker_label": self.speaker_label_var.get(),
-                "listener_label": self.listener_label_var.get()
+                "listener_label": self.listener_label_var.get(),
+                "active_live_analysis_prompt": "default",
+                "active_final_report_prompt": "default",
+                "api_key": self.api_key_var.get(),
+                "llm_model": self.llm_model_var.get(),
+                "audio_model": self.audio_model_var.get()
             }
 
             config_path = Path(__file__).parent / "config.json"
@@ -243,7 +411,7 @@ class CallAssistantGUI:
                 json.dump(config, f, indent=2, ensure_ascii=False)
 
             messagebox.showinfo("Success", "Configuration saved successfully!")
-            self.append_to_display("Configuration saved.\n", "info")
+            self.append_to_display("Configuration saved.\n", "success")
 
         except Exception as e:
             messagebox.showerror("Error", f"Failed to save configuration: {e}")
@@ -269,7 +437,6 @@ class CallAssistantGUI:
             messagebox.showerror("Error", "Session number must be a valid number")
             return False
 
-        # Check if session file exists
         session_path = Path(__file__).parent / "sessions" / f"session_{self.session_num_var.get()}.txt"
         if not session_path.exists():
             response = messagebox.askyesno("Warning",
@@ -286,50 +453,38 @@ class CallAssistantGUI:
         if not self.validate_inputs():
             return
 
-        # Save configuration first
         self.save_config()
 
-        # Set environment variables
         os.environ["OPENROUTER_API_KEY"] = self.api_key_var.get()
         os.environ["LLM_MODEL"] = self.llm_model_var.get()
         os.environ["AUDIO_MODEL"] = self.audio_model_var.get()
 
-        # Update UI
         self.is_running = True
-        self.start_button.config(state="disabled")
-        self.stop_button.config(state="normal")
-        self.status_var.set("Recording...")
+        self.start_button.config(state='disabled', bg='#9CA3AF')
+        self.stop_button.config(state='normal', bg=self.COLORS['danger'])
+        self.status_var.set("🔴 Recording...")
+        self.status_label.config(fg=self.COLORS['danger'])
 
         self.append_to_display("="*50 + "\n", "info")
-        self.append_to_display("Starting AI Call Assistant...\n", "info")
-        self.append_to_display(f"LLM Model: {self.llm_model_var.get()}\n", "info")
-        self.append_to_display(f"Audio Model: {self.audio_model_var.get()}\n", "info")
+        self.append_to_display("🎙️ Starting AI Call Assistant...\n", "success")
+        self.append_to_display(f"LLM: {self.llm_model_var.get()}\n", "info")
+        self.append_to_display(f"Audio: {self.audio_model_var.get()}\n", "info")
         self.append_to_display("="*50 + "\n\n", "info")
 
-        # Start recording in separate thread
         self.recording_thread = threading.Thread(target=self.run_assistant, daemon=True)
         self.recording_thread.start()
 
-        # Start UI update loop
         self.update_display()
 
     def run_assistant(self):
         """Run the CallAssistant in a separate thread"""
         try:
-            # Import CallAssistant module now (after API key is set)
             import CallAssistant
             import importlib
-
-            # Reload to pick up new environment variables
             importlib.reload(CallAssistant)
 
-            # Store reference for later use
             self.CallAssistant = CallAssistant
-
-            # Redirect logging to GUI
             self.setup_logging_redirect()
-
-            # Run the main assistant
             self.CallAssistant.main()
 
         except KeyboardInterrupt:
@@ -354,7 +509,6 @@ class CallAssistantGUI:
                 tag = "info" if level == "info" else "error"
                 self.queue.put((tag, msg + "\n"))
 
-        # Add GUI handler to CallAssistant logger
         gui_handler = GUIHandler(self.transcript_queue)
         gui_handler.setFormatter(logging.Formatter('%(asctime)s - %(message)s', datefmt='%H:%M:%S'))
         self.CallAssistant.logger.addHandler(gui_handler)
@@ -362,24 +516,20 @@ class CallAssistantGUI:
     def stop_recording(self):
         """Stop the recording and generate report"""
         if self.is_running:
-            self.append_to_display("\nStopping recording and generating report...\n", "info")
+            self.append_to_display("\n🛑 Stopping recording and generating report...\n", "info")
 
-            # Trigger the same behavior as Ctrl+C in the original script
             if self.recording_thread and self.recording_thread.is_alive() and hasattr(self, 'CallAssistant'):
-                # Send shutdown signals to queues
                 self.CallAssistant.audio_queue.put(("shutdown", None))
                 self.CallAssistant.live_text_queue.put(None)
-
-                # Generate report
                 threading.Thread(target=self.CallAssistant.generate_final_report, daemon=True).start()
 
-            # Update UI
             self.is_running = False
-            self.start_button.config(state="normal")
-            self.stop_button.config(state="disabled")
+            self.start_button.config(state='normal', bg=self.COLORS['success'])
+            self.stop_button.config(state='disabled', bg='#9CA3AF')
             self.status_var.set("Ready")
+            self.status_label.config(fg=self.COLORS['text_secondary'])
 
-            self.append_to_display("\nRecording stopped. Report generation in progress...\n", "info")
+            self.append_to_display("\n✅ Recording stopped. Report generation in progress...\n", "success")
 
     def update_display(self):
         """Update the transcript display with queued messages"""
@@ -390,25 +540,19 @@ class CallAssistantGUI:
 
                 if tag == "done":
                     self.is_running = False
-                    self.start_button.config(state="normal")
-                    self.stop_button.config(state="disabled")
+                    self.start_button.config(state='normal', bg=self.COLORS['success'])
+                    self.stop_button.config(state='disabled', bg='#9CA3AF')
                     self.status_var.set("Ready")
+                    self.status_label.config(fg=self.COLORS['text_secondary'])
         except queue.Empty:
             pass
 
-        # Schedule next update if still running
         if self.is_running or not self.transcript_queue.empty():
             self.root.after(100, self.update_display)
 
     def append_to_display(self, message, tag="normal"):
         """Append message to transcript display with color coding"""
         self.transcript_display.config(state="normal")
-
-        # Configure tags for color coding
-        self.transcript_display.tag_config("info", foreground="blue")
-        self.transcript_display.tag_config("error", foreground="red")
-        self.transcript_display.tag_config("success", foreground="green")
-
         self.transcript_display.insert(tk.END, message, tag)
         self.transcript_display.see(tk.END)
         self.transcript_display.config(state="disabled")
@@ -421,7 +565,13 @@ class CallAssistantGUI:
 
     def open_configuration_window(self):
         """Open the configuration window for prompts and sessions"""
-        ConfigurationWindow(self.root)
+        # Singleton pattern - only one configuration window at a time
+        if CallAssistantGUI._config_window is None or not CallAssistantGUI._config_window.window.winfo_exists():
+            CallAssistantGUI._config_window = ConfigurationWindow(self.root)
+        else:
+            # Bring existing window to front
+            CallAssistantGUI._config_window.window.lift()
+            CallAssistantGUI._config_window.window.focus_force()
 
 
 def main():

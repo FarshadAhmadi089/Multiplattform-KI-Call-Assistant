@@ -1,28 +1,42 @@
 """
-Configuration Window for AI Call Assistant
-Manages Prompts and Sessions with file operations
+Configuration Window for AI Call Assistant - Modern Design
+Manages Prompts and Sessions with beautiful styling
 """
 
 import tkinter as tk
 from tkinter import ttk, scrolledtext, messagebox, simpledialog
 from pathlib import Path
 import os
-import shutil
 
 
-class ConfigurationWindow:
-    """
-    Unified configuration window for managing Prompts and Sessions
-    """
+class StyledConfigurationWindow:
+    # Modern Color Scheme (same as main GUI)
+    COLORS = {
+        'primary': '#2563EB',
+        'primary_dark': '#1E40AF',
+        'primary_light': '#DBEAFE',
+        'secondary': '#10B981',
+        'danger': '#EF4444',
+        'warning': '#F59E0B',
+        'bg_main': '#F9FAFB',
+        'bg_card': '#FFFFFF',
+        'bg_sidebar': '#F3F4F6',
+        'text_primary': '#111827',
+        'text_secondary': '#6B7280',
+        'border': '#E5E7EB',
+        'success': '#10B981'
+    }
+
     def __init__(self, parent):
         self.window = tk.Toplevel(parent)
-        self.window.title("Configuration Manager")
-        self.window.geometry("950x700")
+        self.window.title("⚙️ Configuration Manager")
+        self.window.geometry("1100x750")
+        self.window.configure(bg=self.COLORS['bg_main'])
 
         # State variables
         self.current_file = None
         self.original_content = ""
-        self.current_category = None  # "live_analysis", "final_report", or "sessions"
+        self.current_category = None
 
         # Paths
         self.base_path = Path(__file__).parent
@@ -32,198 +46,275 @@ class ConfigurationWindow:
         }
         self.session_path = self.base_path / "sessions"
 
+        # Setup styles
+        self.setup_styles()
+
         # Create UI
         self.create_widgets()
 
+    def setup_styles(self):
+        """Configure ttk styles"""
+        style = ttk.Style()
+        style.theme_use('clam')
+
+        # Frames
+        style.configure('Main.TFrame', background=self.COLORS['bg_main'])
+        style.configure('Card.TFrame', background=self.COLORS['bg_card'])
+        style.configure('Sidebar.TFrame', background=self.COLORS['bg_sidebar'])
+        style.configure('Header.TFrame', background=self.COLORS['primary'])
+
+        # Labels
+        style.configure('Header.TLabel',
+                       background=self.COLORS['primary'],
+                       foreground='white',
+                       font=('Segoe UI', 16, 'bold'))
+        style.configure('SectionTitle.TLabel',
+                       background=self.COLORS['bg_card'],
+                       foreground=self.COLORS['text_primary'],
+                       font=('Segoe UI', 11, 'bold'))
+        style.configure('SidebarLabel.TLabel',
+                       background=self.COLORS['bg_sidebar'],
+                       foreground=self.COLORS['text_primary'],
+                       font=('Segoe UI', 9, 'bold'))
+        style.configure('CardLabel.TLabel',
+                       background=self.COLORS['bg_card'],
+                       foreground=self.COLORS['text_primary'])
+        style.configure('Info.TLabel',
+                       background=self.COLORS['bg_card'],
+                       foreground=self.COLORS['text_secondary'],
+                       font=('Segoe UI', 8))
+
+        # Notebook
+        style.configure('TNotebook', background=self.COLORS['bg_main'], borderwidth=0)
+        style.configure('TNotebook.Tab', padding=[20, 10], font=('Segoe UI', 10, 'bold'))
+
     def create_widgets(self):
-        # Main container
-        main_frame = ttk.Frame(self.window, padding="10")
-        main_frame.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
+        # ============================================
+        # HEADER
+        # ============================================
+        header = ttk.Frame(self.window, style='Header.TFrame', height=80)
+        header.pack(fill='x')
+        header.pack_propagate(False)
 
-        self.window.columnconfigure(0, weight=1)
-        self.window.rowconfigure(0, weight=1)
-        main_frame.columnconfigure(0, weight=1)
-        main_frame.rowconfigure(0, weight=1)
+        header_content = ttk.Frame(header, style='Header.TFrame')
+        header_content.place(relx=0.5, rely=0.5, anchor='center')
 
-        # Create notebook (tabs)
-        self.notebook = ttk.Notebook(main_frame)
-        self.notebook.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
+        ttk.Label(header_content, text="⚙️  Configuration Manager", style='Header.TLabel').pack()
+
+        # ============================================
+        # MAIN CONTENT
+        # ============================================
+        content = ttk.Frame(self.window, style='Main.TFrame', padding="20")
+        content.pack(fill='both', expand=True)
+
+        # Create notebook with tabs
+        self.notebook = ttk.Notebook(content)
+        self.notebook.pack(fill='both', expand=True)
 
         # Create tabs
-        self.prompt_tab = ttk.Frame(self.notebook, padding="10")
-        self.session_tab = ttk.Frame(self.notebook, padding="10")
+        self.create_prompts_tab()
+        self.create_sessions_tab()
 
-        self.notebook.add(self.prompt_tab, text="Prompts")
-        self.notebook.add(self.session_tab, text="Sessions")
-
-        # Configure tab frames
-        self.prompt_tab.columnconfigure(1, weight=1)
-        self.prompt_tab.rowconfigure(1, weight=1)
-        self.session_tab.columnconfigure(1, weight=1)
-        self.session_tab.rowconfigure(1, weight=1)
-
-        # Build prompt tab
-        self.create_prompt_tab()
-
-        # Build session tab
-        self.create_session_tab()
-
-    def create_prompt_tab(self):
+    def create_prompts_tab(self):
         """Create the Prompts management tab"""
+        tab = ttk.Frame(self.notebook, style='Main.TFrame', padding="15")
+        self.notebook.add(tab, text="  📝 Prompts  ")
+
+        # Main container
+        container = ttk.Frame(tab, style='Main.TFrame')
+        container.pack(fill='both', expand=True)
+
         # ============================================
-        # LEFT PANEL - File Browser
+        # LEFT SIDEBAR
         # ============================================
-        left_frame = ttk.Frame(self.prompt_tab)
-        left_frame.grid(row=0, column=0, rowspan=3, sticky=(tk.W, tk.E, tk.N, tk.S), padx=(0, 10))
+        sidebar = ttk.Frame(container, style='Sidebar.TFrame', width=280)
+        sidebar.pack(side='left', fill='y', padx=(0, 15))
+        sidebar.pack_propagate(False)
+
+        sidebar_content = ttk.Frame(sidebar, style='Sidebar.TFrame', padding="15")
+        sidebar_content.pack(fill='both', expand=True)
 
         # Category selection
-        ttk.Label(left_frame, text="Prompt Type:", font=("", 9, "bold")).grid(row=0, column=0, sticky=tk.W, pady=(0, 5))
+        ttk.Label(sidebar_content, text="Prompt Type", style='SidebarLabel.TLabel').pack(anchor='w', pady=(0, 5))
 
         self.prompt_category_var = tk.StringVar()
-        category_combo = ttk.Combobox(left_frame, textvariable=self.prompt_category_var,
-                                      values=list(self.prompt_paths.keys()), state="readonly", width=20)
-        category_combo.grid(row=1, column=0, sticky=(tk.W, tk.E), pady=(0, 10))
+        category_combo = ttk.Combobox(sidebar_content, textvariable=self.prompt_category_var,
+                                      values=list(self.prompt_paths.keys()), state="readonly")
+        category_combo.pack(fill='x', pady=(0, 15))
         category_combo.bind("<<ComboboxSelected>>", self.on_prompt_category_change)
 
         # File list
-        ttk.Label(left_frame, text="Available Prompts:", font=("", 9, "bold")).grid(row=2, column=0, sticky=tk.W, pady=(0, 5))
+        ttk.Label(sidebar_content, text="Available Prompts", style='SidebarLabel.TLabel').pack(anchor='w', pady=(0, 5))
 
-        list_frame = ttk.Frame(left_frame)
-        list_frame.grid(row=3, column=0, sticky=(tk.W, tk.E, tk.N, tk.S), pady=(0, 10))
-        list_frame.columnconfigure(0, weight=1)
-        list_frame.rowconfigure(0, weight=1)
+        list_container = ttk.Frame(sidebar_content, style='Sidebar.TFrame')
+        list_container.pack(fill='both', expand=True, pady=(0, 15))
 
-        scrollbar = ttk.Scrollbar(list_frame)
-        scrollbar.grid(row=0, column=1, sticky=(tk.N, tk.S))
+        scrollbar = ttk.Scrollbar(list_container)
+        scrollbar.pack(side='right', fill='y')
 
-        self.prompt_listbox = tk.Listbox(list_frame, yscrollcommand=scrollbar.set, height=15)
-        self.prompt_listbox.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
+        self.prompt_listbox = tk.Listbox(list_container, yscrollcommand=scrollbar.set,
+                                         font=('Segoe UI', 9), relief='flat',
+                                         borderwidth=1, highlightthickness=1,
+                                         highlightcolor=self.COLORS['primary'],
+                                         selectbackground=self.COLORS['primary_light'],
+                                         selectforeground=self.COLORS['primary_dark'])
+        self.prompt_listbox.pack(side='left', fill='both', expand=True)
         self.prompt_listbox.bind("<<ListboxSelect>>", self.on_prompt_select)
         scrollbar.config(command=self.prompt_listbox.yview)
 
-        left_frame.rowconfigure(3, weight=1)
+        # Action buttons
+        button_container = ttk.Frame(sidebar_content, style='Sidebar.TFrame')
+        button_container.pack(fill='x')
 
-        # File management buttons
-        button_frame = ttk.Frame(left_frame)
-        button_frame.grid(row=4, column=0, sticky=(tk.W, tk.E), pady=(5, 0))
-
-        ttk.Button(button_frame, text="New", command=self.new_prompt, width=10).grid(row=0, column=0, padx=(0, 5))
-        ttk.Button(button_frame, text="Rename", command=self.rename_prompt, width=10).grid(row=0, column=1, padx=(0, 5))
-        ttk.Button(button_frame, text="Delete", command=self.delete_prompt, width=10).grid(row=0, column=2)
+        self.create_action_button(button_container, "➕ New", self.new_prompt, self.COLORS['success']).pack(fill='x', pady=(0, 5))
+        self.create_action_button(button_container, "✏️ Rename", self.rename_prompt, self.COLORS['warning']).pack(fill='x', pady=(0, 5))
+        self.create_action_button(button_container, "🗑️ Delete", self.delete_prompt, self.COLORS['danger']).pack(fill='x')
 
         # ============================================
-        # RIGHT PANEL - Editor
+        # RIGHT EDITOR PANEL
         # ============================================
-        right_frame = ttk.LabelFrame(self.prompt_tab, text="Prompt Content", padding="10")
-        right_frame.grid(row=0, column=1, rowspan=2, sticky=(tk.W, tk.E, tk.N, tk.S))
-        right_frame.columnconfigure(0, weight=1)
-        right_frame.rowconfigure(0, weight=1)
+        editor_panel = ttk.Frame(container, style='Card.TFrame', relief='solid', borderwidth=1)
+        editor_panel.pack(side='left', fill='both', expand=True)
 
-        # Text editor
-        self.prompt_editor = scrolledtext.ScrolledText(right_frame, wrap=tk.WORD, width=60, height=25, font=("Consolas", 10))
-        self.prompt_editor.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
+        # Editor header
+        editor_header = ttk.Frame(editor_panel, style='Card.TFrame', padding="15")
+        editor_header.pack(fill='x')
+
+        ttk.Label(editor_header, text="📄 Prompt Content", style='SectionTitle.TLabel').pack(anchor='w')
+
+        # Editor content
+        editor_content = ttk.Frame(editor_panel, style='Card.TFrame', padding="15")
+        editor_content.pack(fill='both', expand=True)
+
+        self.prompt_editor = scrolledtext.ScrolledText(editor_content, wrap=tk.WORD,
+                                                        font=('Consolas', 10),
+                                                        relief='flat', borderwidth=1,
+                                                        bg='#FAFAFA')
+        self.prompt_editor.pack(fill='both', expand=True)
 
         # Info label
-        info_label = ttk.Label(right_frame,
-                              text="💡 Placeholders: {participants_list}, {session_number}, {session_content}, {participants_table}",
-                              foreground="blue", font=("", 8))
-        info_label.grid(row=1, column=0, sticky=tk.W, pady=(5, 0))
+        info_container = ttk.Frame(editor_content, style='Card.TFrame')
+        info_container.pack(fill='x', pady=(10, 0))
 
-        # ============================================
-        # BOTTOM BUTTONS
-        # ============================================
-        prompt_button_frame = ttk.Frame(self.prompt_tab)
-        prompt_button_frame.grid(row=2, column=1, sticky=(tk.W, tk.E), pady=(10, 0))
+        ttk.Label(info_container,
+                 text="💡 Placeholders: {participants_list}, {session_number}, {session_content}, {participants_table}",
+                 style='Info.TLabel').pack(anchor='w')
 
-        self.prompt_save_btn = ttk.Button(prompt_button_frame, text="Save Changes", command=self.save_prompt)
-        self.prompt_save_btn.grid(row=0, column=0, padx=(0, 5))
+        # Editor footer with buttons
+        editor_footer = ttk.Frame(editor_panel, style='Card.TFrame', padding="15")
+        editor_footer.pack(fill='x')
 
-        self.prompt_reset_btn = ttk.Button(prompt_button_frame, text="Reset", command=self.reset_prompt)
-        self.prompt_reset_btn.grid(row=0, column=1)
-
-        # Spacer
-        prompt_button_frame.columnconfigure(2, weight=1)
+        self.create_action_button(editor_footer, "💾 Save Changes", self.save_prompt, self.COLORS['primary']).pack(side='left', padx=(0, 10))
+        self.create_action_button(editor_footer, "↺ Reset", self.reset_prompt, self.COLORS['text_secondary']).pack(side='left')
 
         # Status
-        self.prompt_status_label = ttk.Label(prompt_button_frame, text="Select a prompt to begin", foreground="gray")
-        self.prompt_status_label.grid(row=1, column=0, columnspan=3, sticky=tk.W, pady=(5, 0))
+        self.prompt_status_label = tk.Label(editor_footer, text="Select a prompt to begin",
+                                            bg=self.COLORS['bg_card'],
+                                            fg=self.COLORS['text_secondary'],
+                                            font=('Segoe UI', 9))
+        self.prompt_status_label.pack(side='right')
 
-    def create_session_tab(self):
+    def create_sessions_tab(self):
         """Create the Sessions management tab"""
+        tab = ttk.Frame(self.notebook, style='Main.TFrame', padding="15")
+        self.notebook.add(tab, text="  📅 Sessions  ")
+
+        # Main container
+        container = ttk.Frame(tab, style='Main.TFrame')
+        container.pack(fill='both', expand=True)
+
         # ============================================
-        # LEFT PANEL - File Browser
+        # LEFT SIDEBAR
         # ============================================
-        left_frame = ttk.Frame(self.session_tab)
-        left_frame.grid(row=0, column=0, rowspan=3, sticky=(tk.W, tk.E, tk.N, tk.S), padx=(0, 10))
+        sidebar = ttk.Frame(container, style='Sidebar.TFrame', width=280)
+        sidebar.pack(side='left', fill='y', padx=(0, 15))
+        sidebar.pack_propagate(False)
+
+        sidebar_content = ttk.Frame(sidebar, style='Sidebar.TFrame', padding="15")
+        sidebar_content.pack(fill='both', expand=True)
 
         # File list
-        ttk.Label(left_frame, text="Available Sessions:", font=("", 9, "bold")).grid(row=0, column=0, sticky=tk.W, pady=(0, 5))
+        ttk.Label(sidebar_content, text="Available Sessions", style='SidebarLabel.TLabel').pack(anchor='w', pady=(0, 5))
 
-        list_frame = ttk.Frame(left_frame)
-        list_frame.grid(row=1, column=0, sticky=(tk.W, tk.E, tk.N, tk.S), pady=(0, 10))
-        list_frame.columnconfigure(0, weight=1)
-        list_frame.rowconfigure(0, weight=1)
+        list_container = ttk.Frame(sidebar_content, style='Sidebar.TFrame')
+        list_container.pack(fill='both', expand=True, pady=(0, 15))
 
-        scrollbar = ttk.Scrollbar(list_frame)
-        scrollbar.grid(row=0, column=1, sticky=(tk.N, tk.S))
+        scrollbar = ttk.Scrollbar(list_container)
+        scrollbar.pack(side='right', fill='y')
 
-        self.session_listbox = tk.Listbox(list_frame, yscrollcommand=scrollbar.set, height=15)
-        self.session_listbox.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
+        self.session_listbox = tk.Listbox(list_container, yscrollcommand=scrollbar.set,
+                                          font=('Segoe UI', 9), relief='flat',
+                                          borderwidth=1, highlightthickness=1,
+                                          highlightcolor=self.COLORS['primary'],
+                                          selectbackground=self.COLORS['primary_light'],
+                                          selectforeground=self.COLORS['primary_dark'])
+        self.session_listbox.pack(side='left', fill='both', expand=True)
         self.session_listbox.bind("<<ListboxSelect>>", self.on_session_select)
         scrollbar.config(command=self.session_listbox.yview)
 
-        left_frame.rowconfigure(1, weight=1)
+        # Action buttons
+        button_container = ttk.Frame(sidebar_content, style='Sidebar.TFrame')
+        button_container.pack(fill='x')
 
-        # File management buttons
-        button_frame = ttk.Frame(left_frame)
-        button_frame.grid(row=2, column=0, sticky=(tk.W, tk.E), pady=(5, 0))
-
-        ttk.Button(button_frame, text="New", command=self.new_session, width=10).grid(row=0, column=0, padx=(0, 5))
-        ttk.Button(button_frame, text="Rename", command=self.rename_session, width=10).grid(row=0, column=1, padx=(0, 5))
-        ttk.Button(button_frame, text="Delete", command=self.delete_session, width=10).grid(row=0, column=2)
-
-        # Refresh button
-        ttk.Button(left_frame, text="Refresh List", command=self.refresh_sessions, width=25).grid(row=3, column=0, pady=(10, 0))
+        self.create_action_button(button_container, "➕ New", self.new_session, self.COLORS['success']).pack(fill='x', pady=(0, 5))
+        self.create_action_button(button_container, "✏️ Rename", self.rename_session, self.COLORS['warning']).pack(fill='x', pady=(0, 5))
+        self.create_action_button(button_container, "🗑️ Delete", self.delete_session, self.COLORS['danger']).pack(fill='x', pady=(0, 5))
+        self.create_action_button(button_container, "🔄 Refresh", self.refresh_sessions, self.COLORS['text_secondary']).pack(fill='x')
 
         # ============================================
-        # RIGHT PANEL - Editor
+        # RIGHT EDITOR PANEL
         # ============================================
-        right_frame = ttk.LabelFrame(self.session_tab, text="Session Content", padding="10")
-        right_frame.grid(row=0, column=1, rowspan=2, sticky=(tk.W, tk.E, tk.N, tk.S))
-        right_frame.columnconfigure(0, weight=1)
-        right_frame.rowconfigure(0, weight=1)
+        editor_panel = ttk.Frame(container, style='Card.TFrame', relief='solid', borderwidth=1)
+        editor_panel.pack(side='left', fill='both', expand=True)
 
-        # Text editor
-        self.session_editor = scrolledtext.ScrolledText(right_frame, wrap=tk.WORD, width=60, height=25, font=("Consolas", 10))
-        self.session_editor.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
+        # Editor header
+        editor_header = ttk.Frame(editor_panel, style='Card.TFrame', padding="15")
+        editor_header.pack(fill='x')
+
+        ttk.Label(editor_header, text="📄 Session Content", style='SectionTitle.TLabel').pack(anchor='w')
+
+        # Editor content
+        editor_content = ttk.Frame(editor_panel, style='Card.TFrame', padding="15")
+        editor_content.pack(fill='both', expand=True)
+
+        self.session_editor = scrolledtext.ScrolledText(editor_content, wrap=tk.WORD,
+                                                         font=('Consolas', 10),
+                                                         relief='flat', borderwidth=1,
+                                                         bg='#FAFAFA')
+        self.session_editor.pack(fill='both', expand=True)
 
         # Info label
-        info_label = ttk.Label(right_frame,
-                              text="💡 Define session objectives, goals, and success criteria here",
-                              foreground="blue", font=("", 8))
-        info_label.grid(row=1, column=0, sticky=tk.W, pady=(5, 0))
+        info_container = ttk.Frame(editor_content, style='Card.TFrame')
+        info_container.pack(fill='x', pady=(10, 0))
 
-        # ============================================
-        # BOTTOM BUTTONS
-        # ============================================
-        session_button_frame = ttk.Frame(self.session_tab)
-        session_button_frame.grid(row=2, column=1, sticky=(tk.W, tk.E), pady=(10, 0))
+        ttk.Label(info_container,
+                 text="💡 Define session objectives, goals, and success criteria here",
+                 style='Info.TLabel').pack(anchor='w')
 
-        self.session_save_btn = ttk.Button(session_button_frame, text="Save Changes", command=self.save_session)
-        self.session_save_btn.grid(row=0, column=0, padx=(0, 5))
+        # Editor footer with buttons
+        editor_footer = ttk.Frame(editor_panel, style='Card.TFrame', padding="15")
+        editor_footer.pack(fill='x')
 
-        self.session_reset_btn = ttk.Button(session_button_frame, text="Reset", command=self.reset_session)
-        self.session_reset_btn.grid(row=0, column=1)
-
-        # Spacer
-        session_button_frame.columnconfigure(2, weight=1)
+        self.create_action_button(editor_footer, "💾 Save Changes", self.save_session, self.COLORS['primary']).pack(side='left', padx=(0, 10))
+        self.create_action_button(editor_footer, "↺ Reset", self.reset_session, self.COLORS['text_secondary']).pack(side='left')
 
         # Status
-        self.session_status_label = ttk.Label(session_button_frame, text="Select a session to begin", foreground="gray")
-        self.session_status_label.grid(row=1, column=0, columnspan=3, sticky=tk.W, pady=(5, 0))
+        self.session_status_label = tk.Label(editor_footer, text="Select a session to begin",
+                                             bg=self.COLORS['bg_card'],
+                                             fg=self.COLORS['text_secondary'],
+                                             font=('Segoe UI', 9))
+        self.session_status_label.pack(side='right')
 
-        # Load sessions on init
+        # Load sessions
         self.refresh_sessions()
+
+    def create_action_button(self, parent, text, command, color):
+        """Create a styled action button"""
+        return tk.Button(parent, text=text, command=command,
+                        bg=color, fg='white' if color != self.COLORS['text_secondary'] else self.COLORS['text_primary'],
+                        font=('Segoe UI', 9, 'bold'),
+                        relief='flat', padx=15, pady=8,
+                        cursor='hand2')
 
     # ============================================
     # PROMPT TAB METHODS
@@ -251,7 +342,6 @@ class ConfigurationWindow:
             prompt_dir.mkdir(parents=True, exist_ok=True)
             return
 
-        # List all .txt files
         for file in sorted(prompt_dir.glob("*.txt")):
             self.prompt_listbox.insert(tk.END, file.stem)
 
@@ -279,15 +369,16 @@ class ConfigurationWindow:
             self.current_file = file_path
             self.original_content = content
 
-            # Load into editor
             self.prompt_editor.delete(1.0, tk.END)
             self.prompt_editor.insert(1.0, content)
 
-            self.prompt_status_label.config(text=f"Loaded: {file_path.name}", foreground="green")
+            self.prompt_status_label.config(text=f"✓ Loaded: {file_path.name}",
+                                           fg=self.COLORS['success'])
 
         except Exception as e:
             messagebox.showerror("Error", f"Failed to load prompt:\n{e}")
-            self.prompt_status_label.config(text=f"Error: {e}", foreground="red")
+            self.prompt_status_label.config(text=f"✗ Error: {e}",
+                                           fg=self.COLORS['danger'])
 
     def save_prompt(self):
         """Save changes to the current prompt"""
@@ -302,12 +393,14 @@ class ConfigurationWindow:
                 f.write(content)
 
             self.original_content = content
-            self.prompt_status_label.config(text="✓ Saved successfully", foreground="green")
+            self.prompt_status_label.config(text="✓ Saved successfully",
+                                           fg=self.COLORS['success'])
             messagebox.showinfo("Success", f"Saved: {self.current_file.name}")
 
         except Exception as e:
             messagebox.showerror("Error", f"Failed to save:\n{e}")
-            self.prompt_status_label.config(text=f"Error: {e}", foreground="red")
+            self.prompt_status_label.config(text=f"✗ Error: {e}",
+                                           fg=self.COLORS['danger'])
 
     def reset_prompt(self):
         """Reset prompt editor to original content"""
@@ -316,7 +409,8 @@ class ConfigurationWindow:
 
         self.prompt_editor.delete(1.0, tk.END)
         self.prompt_editor.insert(1.0, self.original_content)
-        self.prompt_status_label.config(text="Reset to original", foreground="blue")
+        self.prompt_status_label.config(text="↺ Reset to original",
+                                       fg=self.COLORS['primary'])
 
     def new_prompt(self):
         """Create a new prompt file"""
@@ -329,7 +423,6 @@ class ConfigurationWindow:
         if not filename:
             return
 
-        # Sanitize filename
         filename = "".join(c for c in filename if c.isalnum() or c in (' ', '-', '_')).strip()
         if not filename:
             messagebox.showerror("Invalid Name", "Filename cannot be empty.")
@@ -341,7 +434,6 @@ class ConfigurationWindow:
             messagebox.showerror("File Exists", f"A prompt named '{filename}' already exists.")
             return
 
-        # Create with template
         template = f"# {filename}\n\nYour prompt content here...\n"
 
         try:
@@ -349,7 +441,8 @@ class ConfigurationWindow:
                 f.write(template)
 
             self.refresh_prompts()
-            self.prompt_status_label.config(text=f"Created: {filename}.txt", foreground="green")
+            self.prompt_status_label.config(text=f"✓ Created: {filename}.txt",
+                                           fg=self.COLORS['success'])
             messagebox.showinfo("Success", f"Created new prompt: {filename}.txt")
 
             # Select the new file
@@ -377,7 +470,6 @@ class ConfigurationWindow:
         if not new_name or new_name == old_name:
             return
 
-        # Sanitize
         new_name = "".join(c for c in new_name if c.isalnum() or c in (' ', '-', '_')).strip()
         if not new_name:
             messagebox.showerror("Invalid Name", "Filename cannot be empty.")
@@ -393,9 +485,9 @@ class ConfigurationWindow:
         try:
             old_path.rename(new_path)
             self.refresh_prompts()
-            self.prompt_status_label.config(text=f"Renamed to: {new_name}.txt", foreground="green")
+            self.prompt_status_label.config(text=f"✓ Renamed to: {new_name}.txt",
+                                           fg=self.COLORS['success'])
 
-            # Select the renamed file
             for i in range(self.prompt_listbox.size()):
                 if self.prompt_listbox.get(i) == new_name:
                     self.prompt_listbox.selection_clear(0, tk.END)
@@ -428,13 +520,14 @@ class ConfigurationWindow:
             self.prompt_editor.delete(1.0, tk.END)
             self.current_file = None
             self.refresh_prompts()
-            self.prompt_status_label.config(text=f"Deleted: {filename}.txt", foreground="orange")
+            self.prompt_status_label.config(text=f"✓ Deleted: {filename}.txt",
+                                           fg=self.COLORS['warning'])
 
         except Exception as e:
             messagebox.showerror("Error", f"Failed to delete:\n{e}")
 
     # ============================================
-    # SESSION TAB METHODS
+    # SESSION TAB METHODS (similar to prompt methods)
     # ============================================
 
     def refresh_sessions(self):
@@ -445,7 +538,6 @@ class ConfigurationWindow:
             self.session_path.mkdir(parents=True, exist_ok=True)
             return
 
-        # List all .txt files
         for file in sorted(self.session_path.glob("*.txt")):
             self.session_listbox.insert(tk.END, file.stem)
 
@@ -469,15 +561,16 @@ class ConfigurationWindow:
             self.current_file = file_path
             self.original_content = content
 
-            # Load into editor
             self.session_editor.delete(1.0, tk.END)
             self.session_editor.insert(1.0, content)
 
-            self.session_status_label.config(text=f"Loaded: {file_path.name}", foreground="green")
+            self.session_status_label.config(text=f"✓ Loaded: {file_path.name}",
+                                            fg=self.COLORS['success'])
 
         except Exception as e:
             messagebox.showerror("Error", f"Failed to load session:\n{e}")
-            self.session_status_label.config(text=f"Error: {e}", foreground="red")
+            self.session_status_label.config(text=f"✗ Error: {e}",
+                                            fg=self.COLORS['danger'])
 
     def save_session(self):
         """Save changes to the current session"""
@@ -492,12 +585,14 @@ class ConfigurationWindow:
                 f.write(content)
 
             self.original_content = content
-            self.session_status_label.config(text="✓ Saved successfully", foreground="green")
+            self.session_status_label.config(text="✓ Saved successfully",
+                                            fg=self.COLORS['success'])
             messagebox.showinfo("Success", f"Saved: {self.current_file.name}")
 
         except Exception as e:
             messagebox.showerror("Error", f"Failed to save:\n{e}")
-            self.session_status_label.config(text=f"Error: {e}", foreground="red")
+            self.session_status_label.config(text=f"✗ Error: {e}",
+                                            fg=self.COLORS['danger'])
 
     def reset_session(self):
         """Reset session editor to original content"""
@@ -506,7 +601,8 @@ class ConfigurationWindow:
 
         self.session_editor.delete(1.0, tk.END)
         self.session_editor.insert(1.0, self.original_content)
-        self.session_status_label.config(text="Reset to original", foreground="blue")
+        self.session_status_label.config(text="↺ Reset to original",
+                                        fg=self.COLORS['primary'])
 
     def new_session(self):
         """Create a new session file"""
@@ -514,7 +610,6 @@ class ConfigurationWindow:
         if not filename:
             return
 
-        # Sanitize filename
         filename = "".join(c for c in filename if c.isalnum() or c in (' ', '-', '_')).strip()
         if not filename:
             messagebox.showerror("Invalid Name", "Filename cannot be empty.")
@@ -526,7 +621,6 @@ class ConfigurationWindow:
             messagebox.showerror("File Exists", f"A session named '{filename}' already exists.")
             return
 
-        # Create with template
         template = f"""Session - {filename}
 {'='*50}
 
@@ -549,10 +643,10 @@ SUCCESS CRITERIA:
                 f.write(template)
 
             self.refresh_sessions()
-            self.session_status_label.config(text=f"Created: {filename}.txt", foreground="green")
+            self.session_status_label.config(text=f"✓ Created: {filename}.txt",
+                                            fg=self.COLORS['success'])
             messagebox.showinfo("Success", f"Created new session: {filename}.txt")
 
-            # Select the new file
             for i in range(self.session_listbox.size()):
                 if self.session_listbox.get(i) == filename:
                     self.session_listbox.selection_clear(0, tk.END)
@@ -576,7 +670,6 @@ SUCCESS CRITERIA:
         if not new_name or new_name == old_name:
             return
 
-        # Sanitize
         new_name = "".join(c for c in new_name if c.isalnum() or c in (' ', '-', '_')).strip()
         if not new_name:
             messagebox.showerror("Invalid Name", "Filename cannot be empty.")
@@ -592,9 +685,9 @@ SUCCESS CRITERIA:
         try:
             old_path.rename(new_path)
             self.refresh_sessions()
-            self.session_status_label.config(text=f"Renamed to: {new_name}.txt", foreground="green")
+            self.session_status_label.config(text=f"✓ Renamed to: {new_name}.txt",
+                                            fg=self.COLORS['success'])
 
-            # Select the renamed file
             for i in range(self.session_listbox.size()):
                 if self.session_listbox.get(i) == new_name:
                     self.session_listbox.selection_clear(0, tk.END)
@@ -626,7 +719,8 @@ SUCCESS CRITERIA:
             self.session_editor.delete(1.0, tk.END)
             self.current_file = None
             self.refresh_sessions()
-            self.session_status_label.config(text=f"Deleted: {filename}.txt", foreground="orange")
+            self.session_status_label.config(text=f"✓ Deleted: {filename}.txt",
+                                            fg=self.COLORS['warning'])
 
         except Exception as e:
             messagebox.showerror("Error", f"Failed to delete:\n{e}")
